@@ -18,9 +18,7 @@ def compressed_product(m1, m2, b, d, n, rng):
 
             for i in range(n):
                 pa[h1[t, i]] += s1[t, i] * m1[i, k]
-
-            for j in range(n):
-                pb[h2[t, j]] += s2[t, j] * m2[k, j]
+                pb[h2[t, i]] += s2[t, i] * m2[k, i]
 
             pa, pb = np.fft.fft(pa), np.fft.fft(pb)
             p[t] += np.multiply(pa, pb)
