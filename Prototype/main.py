@@ -91,11 +91,11 @@ if __name__ == "__main__":
     rng = setup(seed=1337)  # Set seed here to reproduce results
 
     # user variables
-    n = 3  # The size of the matrix
-    matrix_A = random_sparse_matrix(n, 0.45, rng)  # Can also hard code a matrix here
-    matrix_B = random_sparse_matrix(n, 0.45, rng)  # Can also hard code a matrix here
-    b = 7
-    d = 6
+    n = 100  # The size of the matrix
+    matrix_A = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
+    matrix_B = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
+    b = 2000
+    d = 28
 
     # Calculate the final matrix product
     p, h1, h2, s1, s2 = compressed_product(matrix_A, matrix_B, b, d, n, rng)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     pretty_print_matrix(rounded_res, n)
 
     print("\n--------- Real Matrix Product ---------")
-    real_product = matrix_A * matrix_B
+    real_product = np.matmul(matrix_A, matrix_B)
     r = real_product.round(12)
     print(f"Non-zero elements: {np.count_nonzero(r)} of {n*n}")
     print(f"Sum of elements: {np.sum(real_product)}")
