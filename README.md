@@ -1,2 +1,2 @@
 # Master-Thesis
-Engineering an efficient implementation of Pagh’s Compressed Matrix Multiplication Algorithm
+Engineering an Efficient Implementation of Pagh’s Compressed Matrix Multiplication Algorithm
