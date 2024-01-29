@@ -12,16 +12,15 @@ def init_arrays(b, d, n, rng):
 
 def compressed_product(m1, m2, b, d, n, rng):
     p, h1, h2, s1, s2 = init_arrays(b, d, n, rng)
+    m1 = m1.T
     for t in range(d):
         for k in range(n):
             pa, pb = np.zeros(b, dtype="complex_"), np.zeros(b, dtype="complex_")
 
-            for i in range(n):
-                pa[h1[t, i]] += s1[t, i] * m1[i, k]
-                pb[h2[t, i]] += s2[t, i] * m2[k, i]
+            np.add.at(pa, h1[t], np.multiply(s1[t], m1[k]))
+            np.add.at(pb, h2[t], np.multiply(s2[t], m2[k]))
 
-            pa, pb = np.fft.fft(pa), np.fft.fft(pb)
-            p[t] += np.multiply(pa, pb)
+            p[t] += np.multiply(np.fft.fft(pa), np.fft.fft(pb))
 
     p = np.fft.ifft(p, axis=-1)
     return (p, h1, h2, s1, s2)
@@ -39,6 +38,7 @@ def decompress_matrix(p, h1, h2, s1, s2, b, d, n):
     for i in range(n):
         for j in range(n):
             c[i, j] = decompress_element(p, h1, h2, s1, s2, b, d, i, j)
+
     return c
 
 
