@@ -1,64 +1,41 @@
 import numpy as np
 import scipy as sp
 from hashing import rand_primes, gen_coeffs, poly_k_indendent_hash
+import random
 
 
 def init_arrays(b, d, n, rng):
     # All the variables that are declared here are initiated as 2d matrices.
-    p = np.zeros((d, b), dtype="complex_")
+    p = np.zeros((d, b), dtype="complex128")
     h1, h2 = rng.integers(0, b, (d, n)), rng.integers(0, b, (d, n))
     s1, s2 = rng.choice([-1, 1], (d, n)), rng.choice([-1, 1], (d, n))
     return (p, h1, h2, s1, s2)
 
-def init_arrays_2(b, d, n, k, rng):
-    
-    p = np.zeros((d, b), dtype="complex_")
-    h1, h2 = gen_coeffs(d,k,rng), gen_coeffs(d,k,rng)
-    s1, s2 = gen_coeffs(d,k,rng), gen_coeffs(d,k,rng)
-    primes = rand_primes(n+1,d), rand_primes(n+1,d), rand_primes(n+1,d), rand_primes(n+1,d)
-    return (p, h1, h2, s1, s2, primes)
+
 
 def compressed_product(m1, m2, b, d, n, rng):
     p, h1, h2, s1, s2 = init_arrays(b, d, n, rng)
-    m1 = m1.T
     for t in range(d):
         for k in range(n):
-            pa, pb = np.zeros(b, dtype="complex_"), np.zeros(b, dtype="complex_")
+            pa, pb = np.zeros(b, dtype="complex128"), np.zeros(b, dtype="complex128")
 
-            np.add.at(pa, h1[t], np.multiply(s1[t], m1[k]))
-            np.add.at(pb, h2[t], np.multiply(s2[t], m2[k]))
+            for i in range(n):
+                pa[h1[t, i]] += s1[t, i] * m1[i, k]  # These lines are meant equivalent to
+                pb[h2[t, i]] += s2[t, i] * m2[k, i]  # the ones above. (look like it too)
 
-            p[t] += np.multiply(np.fft.fft(pa), np.fft.fft(pb))
+            pa = np.fft.rfft(pa)
+            pb = np.fft.rfft(pb)
+            for z in range(b//2 + 1):
+                p[t, z] += pa[z] * pb[z] # Casting complex values
 
-    p = np.fft.ifft(p, axis=-1)
+    for t in range(d):
+        p[t] = np.fft.irfft(p[t], b)
+    
+    # p = np.fft.ifft(p, axis=-1)
+
     return (p, h1, h2, s1, s2)
 
 
-# very ugly do not look lalalalala
-def compressed_product_2(m1, m2, b, d, n, rng):
-    p, coeffsh1, coeffsh2, coeffss1, coeffss2, primes = init_arrays_2(b, d, n, 2, rng)
-    primes1, primes2, primes3, primes4 = primes
-    m1 = m1.T
-    for t in range(d):
-        for k in range(n):
-            pa, pb = np.zeros(b, dtype="complex_"), np.zeros(b, dtype="complex_")
-
-            for i in range(n):
-
-                index1 = poly_k_indendent_hash(i, coeffsh1[t,:], primes1[t],b)
-                index2 = poly_k_indendent_hash(i, coeffsh2[t,:], primes2[t],b)
-
-                sign1 = 2 * poly_k_indendent_hash(i, coeffss1[t,:], primes3[t],2) - 1
-                sign2 = 2 * poly_k_indendent_hash(i, coeffss2[t,:], primes4[t],2) - 1
-
-                pa[index1] += sign1 * m1[i, k]
-                pb[index2] += sign2 * m2[k, i]
-
-            p[t] += np.multiply(np.fft.fft(pa), np.fft.fft(pb))
-
-    p = np.fft.ifft(p, axis=-1)
-    h1, h2, s1, s2 = coeffsh1, coeffsh2, coeffss1, coeffss2
-    return (p, h1, h2, s1, s2, primes)
 
 
 def decompress_element(p, h1, h2, s1, s2, b, d, i, j):
@@ -87,7 +64,17 @@ def random_sparse_matrix(n, density, rng):
     Generates a random sparse n×n matrix with the
     option to specify the density of non-zero elements.
     """
-    return sp.sparse.random(n, n, density=density, random_state=rng).A
+    return sp.sparse.random(n, n, density=density, random_state=rng, dtype = "float64").A
+
+
+def sparse_matrix_generator(n, density, rng):
+   uni = rng.uniform(0, 1, (n, n))
+   indices = np.random.choice(range(n*n), int(n*n*(1-density)), replace=False)
+   uni = uni.flatten()
+   for i in indices:
+       uni[i] = 0
+   uni = uni.reshape((n,n))
+   return uni
 
 
 def pretty_print_matrix(mat, n):
@@ -123,14 +110,19 @@ def setup(seed=None):
 
 
 if __name__ == "__main__":
-    rng = setup(seed=1337)  # Set seed here to reproduce results
+    rng = setup(seed=1)  # Set seed here to reproduce results
 
     # user variables
     n = 100  # The size of the matrix
+
     matrix_A = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
     matrix_B = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
-    b = 200
-    d = 1
+
+    # matrix_A = rng.uniform(0,1,(n,n))
+    # matrix_B = rng.uniform(0,1,(n,n))
+
+    b = 2500
+    d = 24
 
     # Calculate the final matrix product
     p, h1, h2, s1, s2 = compressed_product(matrix_A, matrix_B, b, d, n, rng)

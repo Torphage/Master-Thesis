@@ -1,29 +1,43 @@
 import numpy as np
 from compressed_mul import *
 
+N_SAMPLES = 1000000
 
 
 if __name__ == "__main__":
-    rng = setup()
+    rng = setup(seed=None)
 
-    n = 10
-    b = 10
+    n = 6
+    b = 2
     d = 1
     
-    matrix_A = random_sparse_matrix(n, 0.1, rng)
-    matrix_B = random_sparse_matrix(n, 0.1, rng)
+    # matrix_A = random_sparse_matrix(n, 0.1, rng)
+    # matrix_B = random_sparse_matrix(n, 0.1, rng)
+
+    matrix_A = sparse_matrix_generator(n, 0.7, rng)
+    matrix_B = sparse_matrix_generator(n, 0.7, rng)
+
+
+    # matrix_A = rng.uniform(0,1,(n,n))
+    # matrix_B = rng.uniform(0,1,(n,n))
+
+    print(matrix_A, "\n")
+    print(matrix_B)
+
 
     result = np.matmul(matrix_A, matrix_B)
-    bound = np.linalg.norm(result, "fro")**2 / b
-
+    bound = (np.linalg.norm(result, "fro")**2) / b
 
     mat = lambda : calculate_result(matrix_A, matrix_B, b, d, n, rng)
-    samples = [mat() for _ in range(100)]
-    # samples = []
-    # for i in range(100):
-    #     mat = calculate_result(matrix_A, matrix_B, b, d, n, rng)
-    #     samples.append(mat)
-    #     print(i)
+   
+    samples = []
+    prog = 0
+
+    for i in range(N_SAMPLES):
+        if i % (N_SAMPLES / 100) == 0:
+            prog += 1
+            print(f"{prog}% done")
+        samples.append(mat())
     
     samples = np.asarray(samples)
     variance = np.var(samples, axis=0, ddof=1)

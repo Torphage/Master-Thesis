@@ -14,5 +14,16 @@ rebuild:
 run:
 	./build/app
 
-all:
+new:
+	mkdir -p build
+	cmake -S . -B ./build
 	cmake --build build -j 2
+
+build:
+	mkdir -p build
+	cmake --build build -j 2
+
+all:
+	mkdir -p build
+	cmake --build build -j 2
+	./build/app
