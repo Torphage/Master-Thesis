@@ -4,8 +4,9 @@
 
 
 int main() {
-    int b = 10, d = 3, n = 100;
+    int b = 5000, d = 30, n = 10;
     std::mt19937_64 rng(std::random_device{}());
+    std::uniform_real_distribution<float> dis(-1.0, 1.0);
     
     Eigen::MatrixXi h1(d, n), h2(d, n), s1(d, n), s2(d, n);
     std::uniform_int_distribution<int> dist(0, b - 1);
@@ -22,13 +23,22 @@ int main() {
     struct hashes hs = {h1, h2, s1, s2};
     struct params ps = {b, d};
     
-            
-    Eigen::MatrixXd m1 = Eigen::MatrixXd::Random(n, n);
-    Eigen::MatrixXd m2 = Eigen::MatrixXd::Random(n, n);
+    
+    Eigen::VectorXd test = Eigen::VectorXd::NullaryExpr(5,[&](){return dis(rng);});
+
+    std::cout << "Vector:\n" << test << std::endl;
+    std::cout << "Median:\n" << find_median(test) << std::endl;
+
+
+    Eigen::MatrixXd m1 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return dis(rng);});
+    Eigen::MatrixXd m2 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return dis(rng);});
 
     Eigen::MatrixXcd p = compressed_product(m1, m2, hs, ps);
+    Eigen::MatrixXd result = decompress_matrix(p, hs, ps, n);
 
-    std::cout << "Result:\n" << p << std::endl;
+    std::cout << "REAL Result:\n" << m1*m2 << std::endl;
+    
+    std::cout << "Result:\n" << result << std::endl;
 
     return 0;
 }

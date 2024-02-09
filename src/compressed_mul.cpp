@@ -6,6 +6,7 @@
 #include "compressed_mul.h"
 #include <vector>
 #include <cmath>
+#include <cassert>
 
 typedef std::complex<double> Complex;
 
@@ -59,7 +60,6 @@ Eigen::MatrixXcd compressed_product(const Eigen::MatrixXd &m1, const Eigen::Matr
         fftw_destroy_plan(plan);
     }
 
-
     // Normalize since fftw doesn't >:(
     for (int i = 0; i < ps.d; i++) {
         for (int j = 0; j < ps.b; j++) {
@@ -70,6 +70,43 @@ Eigen::MatrixXcd compressed_product(const Eigen::MatrixXd &m1, const Eigen::Matr
     return p;
 }
 
-int decompress_element(int i, int j, Eigen::MatrixXd p, hashes hs, params ps) {
-    return 0;
+
+// calculate median
+double find_median(Eigen::VectorXd vec) {
+    int n = vec.size();
+    int targetIndex = n / 2;
+    double *data = vec.data();
+    
+    std::nth_element(data, data + n / 2, data + n); 
+    double median1 = vec(targetIndex);
+
+    if (n % 2 != 0) { 
+        return median1; 
+    } 
+
+    assert(((n - 1) / 2 == n / 2 - 1));
+    std::nth_element(data, data + (n - 1) / 2, data + n); 
+    double median2 = vec(targetIndex - 1);
+  
+    return (median1 + median2) / 2.0; 
+} 
+
+
+double decompress_element(const Eigen::MatrixXcd &p, const hashes &hs, const params &ps, int i, int j) {
+    Eigen::VectorXd xt = Eigen::VectorXd::Zero(ps.d);
+    for (int t = 0; t < ps.d; t++) {
+        xt(t) = hs.s1(t, i) * hs.s2(t, j) * p.real()(t, (hs.h1(t, i) + hs.h2(t, j)) % ps.b);
+    } 
+
+    return find_median(xt);
+}
+
+Eigen::MatrixXd decompress_matrix(Eigen::MatrixXcd p, hashes hs, params ps, int n) {
+    Eigen::MatrixXd c = Eigen::MatrixXd::Zero(n, n);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            c(i, j) = decompress_element(p, hs, ps, i, j);
+        }
+    }
+    return c;
 }

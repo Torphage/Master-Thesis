@@ -20,4 +20,7 @@ struct hashes {
 };
 
 Eigen::MatrixXcd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, const hashes &hs, const params &ps);
-int decompress();
+
+Eigen::MatrixXd decompress_matrix(Eigen::MatrixXcd p, hashes hs, params ps, int n);
+
+double find_median(Eigen::VectorXd vec);
