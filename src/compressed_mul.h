@@ -3,9 +3,7 @@
 #include <fftw3.h>
 
 
-typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> complex_dyn_matrix;
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> double_vector;
-typedef Eigen::Matrix<fftw_complex, Eigen::Dynamic, 1> complex_vector;
+typedef std::complex<double> Complex;
 
 struct params {
     const int b;
@@ -19,8 +17,8 @@ struct hashes {
     Eigen::MatrixXi s2;
 };
 
-Eigen::MatrixXcd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, const hashes &hs, const params &ps);
+Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, const hashes &hs, const params &ps);
 
-Eigen::MatrixXd decompress_matrix(Eigen::MatrixXcd p, hashes hs, params ps, int n);
+Eigen::MatrixXd decompress_matrix(Eigen::MatrixXd p, hashes hs, params ps, int n);
 
 double find_median(Eigen::VectorXd vec);

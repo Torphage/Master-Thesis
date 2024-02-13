@@ -1,29 +1,31 @@
 default_target: all
-.PHONY : default_target
+.PHONY : all test clean tall build
+
+MAKEFLAGS += --no-print-directory
 
 
-redownload:
+clean:
 	rm -r build
-	mkdir build 
-	cmake -S . -B ./build
-	cmake --build build -j 2
-
-rebuild:
-	cmake --build build -j 2
-
-run:
-	./build/app
-
-new:
-	mkdir -p build
-	cmake -S . -B ./build
-	cmake --build build -j 2
 
 build:
 	mkdir -p build
 	cmake --build build -j 2
 
-all:
-	mkdir -p build
+rebuild:
+	$(MAKE) clean
+	cmake -S . -B ./build
 	cmake --build build -j 2
+
+run:
 	./build/app
+
+trun:
+	./build/tests
+
+test:
+	$(MAKE) build
+	$(MAKE) trun
+
+all:
+	$(MAKE) build
+	$(MAKE) run
