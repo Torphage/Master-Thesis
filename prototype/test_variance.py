@@ -1,7 +1,8 @@
 import numpy as np
 from compressed_mul import *
+from hashing import FullyRandomHash, MultiplyShiftHash, TabulationHash
 
-N_SAMPLES = 1000000
+N_SAMPLES = 10000
 
 
 if __name__ == "__main__":
@@ -14,8 +15,8 @@ if __name__ == "__main__":
     # matrix_A = random_sparse_matrix(n, 0.1, rng)
     # matrix_B = random_sparse_matrix(n, 0.1, rng)
 
-    matrix_A = sparse_matrix_generator(n, 0.7, rng)
-    matrix_B = sparse_matrix_generator(n, 0.7, rng)
+    matrix_A = sparse_matrix_generator(n, 0.9, rng)
+    matrix_B = sparse_matrix_generator(n, 0.9, rng)
 
 
     # matrix_A = rng.uniform(0,1,(n,n))
@@ -24,18 +25,22 @@ if __name__ == "__main__":
     print(matrix_A, "\n")
     print(matrix_B)
 
+    # hashes = FullyRandomHash(n, d, b, rng)
+    # hashes = MultiplyShiftHash(d, b, rng)
+    hashes = TabulationHash(16, 64, 64, d, b, rng)
+
 
     result = np.matmul(matrix_A, matrix_B)
     bound = (np.linalg.norm(result, "fro")**2) / b
 
-    mat = lambda : calculate_result(matrix_A, matrix_B, b, d, n, rng)
+    mat = lambda : calculate_result(matrix_A, matrix_B, n, hashes, rng)
    
     samples = []
     prog = 0
 
     for i in range(N_SAMPLES):
-        if i % (N_SAMPLES / 100) == 0:
-            prog += 1
+        if i % (N_SAMPLES / 10) == 0:
+            prog += 10
             print(f"{prog}% done")
         samples.append(mat())
     

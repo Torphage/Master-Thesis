@@ -1,62 +1,57 @@
 import numpy as np
 import scipy as sp
-from hashing import rand_primes, gen_coeffs, poly_k_indendent_hash
-import random
+from hashing import FullyRandomHash, MultiplyShiftHash, TabulationHash
 
 
-def init_arrays(b, d, n, rng):
-    # All the variables that are declared here are initiated as 2d matrices.
+def compressed_product(m1, m2, hashes):
+    b = hashes.b
+    d = hashes.d
+    n, _ = m1.shape
     p = np.zeros((d, b), dtype="complex128")
-    h1, h2 = rng.integers(0, b, (d, n)), rng.integers(0, b, (d, n))
-    s1, s2 = rng.choice([-1, 1], (d, n)), rng.choice([-1, 1], (d, n))
-    return (p, h1, h2, s1, s2)
-
-
-
-def compressed_product(m1, m2, b, d, n, rng):
-    p, h1, h2, s1, s2 = init_arrays(b, d, n, rng)
+    
     for t in range(d):
         for k in range(n):
             pa, pb = np.zeros(b, dtype="complex128"), np.zeros(b, dtype="complex128")
 
             for i in range(n):
-                pa[h1[t, i]] += s1[t, i] * m1[i, k]  # These lines are meant equivalent to
-                pb[h2[t, i]] += s2[t, i] * m2[k, i]  # the ones above. (look like it too)
+                pa[hashes.hash("h1", t, i)] += hashes.hash("s1", t, i) * m1[i, k]
+                pb[hashes.hash("h2", t, i)] += hashes.hash("s2", t, i) * m2[k, i]
 
             pa = np.fft.rfft(pa)
             pb = np.fft.rfft(pb)
             for z in range(b//2 + 1):
-                p[t, z] += pa[z] * pb[z] # Casting complex values
-
-    for t in range(d):
-        p[t] = np.fft.irfft(p[t], b)
+                p[t, z] += pa[z] * pb[z]
     
-    # p = np.fft.ifft(p, axis=-1)
-
-    return (p, h1, h2, s1, s2)
-
-
+    p = np.fft.irfft(p, b, axis=-1)
+    
+    return p
 
 
-def decompress_element(p, h1, h2, s1, s2, b, d, i, j):
+def decompress_element(p, i, j, hashes):
+    d = hashes.d
+    b = hashes.b
     xt = np.zeros(d)
     for t in range(d):
-        xt[t] = s1[t, i] * s2[t, j] * np.real(p[t, (h1[t, i] + h2[t, j]) % b])
+        a1 = hashes.hash("s1", t, i)
+        a2 = hashes.hash("s2", t, j)
+        a3 = hashes.hash("h1", t, i)
+        a4 = hashes.hash("h2", t, j)
+        xt[t] = a1 * a2 * np.real(p[t, int((a3 + a4) % b)])
     return np.median(xt)
 
 
-def decompress_matrix(p, h1, h2, s1, s2, b, d, n):
+def decompress_matrix(p, n, hashes):
     c = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
-            c[i, j] = decompress_element(p, h1, h2, s1, s2, b, d, i, j)
+            c[i, j] = decompress_element(p, i, j, hashes)
 
     return c
 
 
-def calculate_result(m1, m2, b, d, n, rng):
-    p, h1, h2, s1, s2 = compressed_product(m1, m2, b, d, n, rng)
-    return decompress_matrix(p, h1, h2, s1, s2, b, d, n)
+def calculate_result(m1, m2, n, hashes, rng):
+    p = compressed_product(m1, m2, hashes)
+    return decompress_matrix(p, n, hashes)
 
 
 def random_sparse_matrix(n, density, rng):
@@ -81,7 +76,7 @@ def pretty_print_matrix(mat, n):
     """
     Pretty prints matrices such that any two matrices lines up when printing them
     """
-    rounded_digit = 3
+    rounded_digit = 6
     if n > 31:
         # These are the parts of the matrix that will be displayed
         q1 = mat[:3, :3]  # top left
@@ -91,10 +86,10 @@ def pretty_print_matrix(mat, n):
 
         # if any displayed digits are negative, then round the matrix by of less
         if np.any((q1 < 0) | (q2 < 0) | (q3 < 0) | (q4 < 0)):
-            rounded_digit = 2
+            rounded_digit = 5
     else:
         if np.any(mat < 0):
-            rounded_digit = 2
+            rounded_digit = 5
 
     print(mat.round(rounded_digit))
 
@@ -110,23 +105,27 @@ def setup(seed=None):
 
 
 if __name__ == "__main__":
-    rng = setup(seed=1)  # Set seed here to reproduce results
+    seed = 2
+    rng = setup(seed = seed)  # Set seed here to reproduce results
 
     # user variables
-    n = 100  # The size of the matrix
+    n = 85  # The size of the matrix
+    b = 2500 # Number of buckets
+    d = 24 # Number of hash functions
 
     matrix_A = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
     matrix_B = random_sparse_matrix(n, 0.05, rng)  # Can also hard code a matrix here
 
     # matrix_A = rng.uniform(0,1,(n,n))
     # matrix_B = rng.uniform(0,1,(n,n))
-
-    b = 2500
-    d = 24
-
+    
+    # hashes = FullyRandomHash(n, d, b, rng)
+    hashes = MultiplyShiftHash(d, b, rng)
+    # hashes = TabulationHash(16, 64, 64, d, b, rng)
+    
     # Calculate the final matrix product
-    p, h1, h2, s1, s2 = compressed_product(matrix_A, matrix_B, b, d, n, rng)
-    result = decompress_matrix(p, h1, h2, s1, s2, b, d, n)
+    p = compressed_product(matrix_A, matrix_B, hashes)
+    result = decompress_matrix(p, n, hashes)
 
     # This rounds all the elements in the result matrix to the 15th decimal.
     # This is used to offset Python's floating point precision problem.

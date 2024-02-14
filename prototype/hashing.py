@@ -1,48 +1,82 @@
 import numpy as np
-import sympy
+from abc import ABC, abstractmethod
 
+
+class BaseHash(ABC):
+    def __init__(self, d, b, rng):
+        self.d = d
+        self.b = b
+        self.rng = rng
+
+    @abstractmethod
+    def hash(self, name, index, x):
+        return NotImplemented
+
+class FullyRandomHash(BaseHash):
+    def __init__(self, n, d, b, rng):
+        super().__init__(d, b, rng)
+        self.fun = {
+            "h1": rng.integers(0, b, (d, n)),
+            "h2": rng.integers(0, b, (d, n)),
+            "s1": rng.choice([-1, 1], (d, n)),
+            "s2": rng.choice([-1, 1], (d, n)),
+        }
     
-def rand_primes(low, d):
+    def hash(self, name, index , x):
+        return self.fun[name][index, x]
+        
 
-    primes = [sympy.randprime(low, 2**64-1) for _ in range(d)]
+class MultiplyShiftHash(BaseHash):
+    def __init__(self, d, b, rng):
+        super().__init__(d, b, rng)
+        self.fun = {
+            "h1": rng.integers(0, 2**64, (d, 2), dtype = "uint64"),
+            "h2": rng.integers(0, 2**64, (d, 2), dtype = "uint64"),
+            "s1": rng.integers(0, 2**64, (d, 2), dtype = "uint64"),
+            "s2": rng.integers(0, 2**64, (d, 2), dtype = "uint64"),
+        }
+        
+    def hash(self, name, index, x):
+        u = self.fun[name][index][0]
+        v = self.fun[name][index][1]
+        product1 = np.multiply(u, x, dtype="uint64")
+        sum1 = np.add(product1, v, dtype="uint64")
+        intermediate = np.right_shift(sum1, 32, dtype = "uint64")
+        
+        if (name[0] == "s"):
+            product2 = np.multiply(intermediate, 2, dtype="uint64")
+            return 2 * np.right_shift(product2, 32, dtype="uint64") - 1
+        else:
+            product2 = np.multiply(intermediate, self.b, dtype="uint64")
+            return np.right_shift(product2, 32, dtype="uint64")
+ 
 
-    return np.array(primes).reshape(d,1)
-
-
-
-def gen_coeffs(size,rng):
-
-    return rng.integers(0,  2**64-1, size, dtype = "uint64")
-
-
-def random_hash(x, hashes):
+class TabulationHash(BaseHash):
+    def __init__(self, r, p, q, d, b, rng):
+        super().__init__(d, b, rng)
+        self.r = r
+        self.p = p
+        self.q = q
+        self.t = int(np.ceil(p/r))
+        self.fun = {
+            key: np.asarray([
+                rng.integers(0, 2**self.q, (self.t, 2**self.r), dtype = "uint64") 
+                for _ in range(d)
+            ]) 
+            for key in ["h1", "h2", "s1", "s2"]
+        }
     
-    return hashes[x]
+    def hash(self, name, index, x):
+        res = np.uint64(0)
+        mask = (1 << self.r) - 1
+        tab_matrix = self.fun[name][index]
 
-def multiply_shift_hash(x, coeffs, b):
-    product1 = np.multiply(coeffs[0], np.uint32(x), dtype="uint64")
-    intermediate = np.right_shift(product1 + coeffs[1], 32, dtype = "uint64")
-    product2 = np.multiply(intermediate, np.uint32(b), dtype="uint64")
-    return np.right_shift(product2, 32, dtype="uint64")
+        for i in range(self.t):
+            shift = np.right_shift(x, (self.r * i))
+            masked = np.bitwise_and(shift, mask)
+            res = np.bitwise_xor(res, tab_matrix[i][masked])
 
-def tabulation_matrix(p, r, rng):
-
-    # block size r
-    # p number of bits in key to hash
-    # q number of output bits
-    # t = ceil(p/r)
-
-    return rng.integers(0, 2**64-1, ((np.ceil(p/r)).astype("int64"), 2**r), dtype = "uint64")
-
-
-
-def tabulation_hash(x, tab_matrix, r, b):
-
-    res = np.uint64(0)
-
-    for i in range(r):
-
-        index = np.right_shift(x, r * i, dtype="uint64")
-        res = np.bitwise_xor(res, tab_matrix[i][index])
-
-    return np.mod(res, b, dtype = "uint64")
+        if (name[0] == "s"):
+            return 2 * np.mod(res, 2) - 1
+        else:
+            return np.mod(res, self.b, dtype = "uint64")
