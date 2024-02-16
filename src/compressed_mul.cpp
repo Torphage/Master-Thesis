@@ -1,50 +1,52 @@
+#include <cassert>
+#include <cmath>
+#include <complex>
+#include <fftw3.h>
 #include <iostream>
 #include <random>
 #include <tuple>
-#include <complex>
-#include <fftw3.h>
-#include "compressed_mul.h"
 #include <vector>
-#include <cmath>
-#include <cassert>
+#include "compressed_mul.hpp"
 
 
-Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, const hashes &hs, const params &ps) {
+Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, BaseHash &hashes) {
     int n = m1.rows();
+    int b = hashes.b;
+    int d = hashes.d;
 
-    Eigen::MatrixXcd p = Eigen::MatrixXcd::Zero(ps.d, ps.b);
-    Eigen::MatrixXd p_real = Eigen::MatrixXd::Zero(ps.d, ps.b);
+    Eigen::MatrixXcd p = Eigen::MatrixXcd::Zero(d, b);
+    Eigen::MatrixXd p_real = Eigen::MatrixXd::Zero(d, b);
 
-    int t, k, i;
+    int t, k, i, index1, index2;
 
     Eigen::VectorXd pa, pb;
     Complex d1, d2;
     fftw_plan plan1, plan2;
 
     // 🅱️alloc
-    fftw_complex* out1 = fftw_alloc_complex(ps.b/2+1);
-    fftw_complex* out2 = fftw_alloc_complex(ps.b/2+1);
-    fftw_complex* in = fftw_alloc_complex(ps.b);
-    double* out = fftw_alloc_real(2*(ps.b/2+1));
+    fftw_complex* out1 = fftw_alloc_complex(b/2+1);
+    fftw_complex* out2 = fftw_alloc_complex(b/2+1);
+    fftw_complex* in = fftw_alloc_complex(b);
+    double* out = fftw_alloc_real(2*(b/2+1));
 
-    for (t = 0; t < ps.d; t++) {
+    for (t = 0; t < d; t++) {
         for (k = 0; k < n; k++) {
-            pa = Eigen::VectorXd::Zero(ps.b);
-            pb = Eigen::VectorXd::Zero(ps.b);
+            pa = Eigen::VectorXd::Zero(b);
+            pb = Eigen::VectorXd::Zero(b);
             
             for (i = 0; i < n; i++) {
-                pa(hs.h1(t, i)) += hs.s1(t, i) * m1(i, k);
-                pb(hs.h2(t, i)) += hs.s2(t, i) * m2(k, i);
+                pa(hashes.hash("h1", t, i)) += hashes.hash("s1", t, i) * m1(i, k);
+                pb(hashes.hash("h2", t, i)) += hashes.hash("s2", t, i) * m2(k, i);
             }
 
-            plan1 = fftw_plan_dft_r2c_1d(ps.b, pa.data(), out1, FFTW_ESTIMATE);
-            plan2 = fftw_plan_dft_r2c_1d(ps.b, pb.data(), out2, FFTW_ESTIMATE);
+            plan1 = fftw_plan_dft_r2c_1d(b, pa.data(), out1, FFTW_ESTIMATE);
+            plan2 = fftw_plan_dft_r2c_1d(b, pb.data(), out2, FFTW_ESTIMATE);
 
             fftw_execute(plan1);
             fftw_execute(plan2);
 
         
-            for (i = 0; i < ps.b/2 + 1; i++) {
+            for (i = 0; i < b/2 + 1; i++) {
                 d1 = Complex(out1[i][0], out1[i][1]);
                 d2 = Complex(out2[i][0], out2[i][1]);
                 p(t, i) += d1 * d2;
@@ -53,19 +55,19 @@ Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::Matri
         } 
     }
 
-    for (t = 0; t < ps.d; t++) {
+    for (t = 0; t < d; t++) {
         // Copy data from p to in, otherwise p would be overwritten later
-        for (int i = 0; i < ps.b; i++) {
+        for (int i = 0; i < b; i++) {
             in[i][0] = p(t, i).real();
             in[i][1] = p(t, i).imag();
         }
 
-        plan1 = fftw_plan_dft_c2r_1d(ps.b, in, out, FFTW_ESTIMATE);
+        plan1 = fftw_plan_dft_c2r_1d(b, in, out, FFTW_ESTIMATE);
 
         fftw_execute(plan1);
 
-        for (i = 0; i < ps.b; i++) {
-            p_real(t, i) = out[i] / ps.b;
+        for (i = 0; i < b; i++) {
+            p_real(t, i) = out[i] / b;
         }
 
     }
@@ -85,7 +87,6 @@ Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::Matri
 }
 
 
-// calculate median
 double find_median(Eigen::VectorXd vec) {
     int n = vec.size();
     int targetIndex = n / 2;
@@ -105,20 +106,23 @@ double find_median(Eigen::VectorXd vec) {
 } 
 
 
-double decompress_element(const Eigen::MatrixXd &p, const hashes &hs, const params &ps, int i, int j) {
-    Eigen::VectorXd xt = Eigen::VectorXd::Zero(ps.d);
-    for (int t = 0; t < ps.d; t++) {
-        xt(t) = hs.s1(t, i) * hs.s2(t, j) * p(t, (hs.h1(t, i) + hs.h2(t, j)) % ps.b);
+double decompress_element(const Eigen::MatrixXd &p, int i, int j, int d, int b, BaseHash &hashes) {
+    Eigen::VectorXd xt = Eigen::VectorXd::Zero(d);
+    for (int t = 0; t < d; t++) {
+        xt(t) = hashes.hash("s1", t, i) * hashes.hash("s2", t, j) * 
+        p(t, (hashes.hash("h1", t, i) + hashes.hash("h2", t, j)) % b);
     } 
 
     return find_median(xt);
 }
 
-Eigen::MatrixXd decompress_matrix(Eigen::MatrixXd p, hashes hs, params ps, int n) {
+Eigen::MatrixXd decompress_matrix(Eigen::MatrixXd p, int n, BaseHash &hashes) {
+    int b = hashes.b;
+    int d = hashes.d;
     Eigen::MatrixXd c = Eigen::MatrixXd::Zero(n, n);
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            c(i, j) = decompress_element(p, hs, ps, i, j);
+            c(i, j) = decompress_element(p, i, j, d, b, hashes);
         }
     }
     return c;

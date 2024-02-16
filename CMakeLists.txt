@@ -17,14 +17,14 @@ pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
 include_directories(PkgConfig::FFTW)
 
 # Main program
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.h)
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp)
 
 add_executable(app ${SOURCES})
 target_link_libraries(app Eigen3::Eigen)
 target_link_libraries(app PkgConfig::FFTW)
 
 # Testing
-file(GLOB_RECURSE TESTS test/*.cpp test/*.h)
+file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp)
 
 add_executable(tests ${TESTS})
 # These tests can use the Catch2-provided main
