@@ -37,18 +37,17 @@ class MultiplyShiftHash(BaseHash):
         }
         
     def hash(self, name, index, x):
-        u = self.fun[name][index][0]
-        v = self.fun[name][index][1]
+        u, v = self.fun[name][index]
         product1 = np.multiply(u, x, dtype="uint64")
         sum1 = np.add(product1, v, dtype="uint64")
         intermediate = np.right_shift(sum1, 32, dtype = "uint64")
-        
+
         if (name[0] == "s"):
             product2 = np.multiply(intermediate, 2, dtype="uint64")
-            return 2 * np.right_shift(product2, 32, dtype="uint64") - 1
+            return 2 * np.right_shift(product2, 32, dtype="int64") - 1
         else:
             product2 = np.multiply(intermediate, self.b, dtype="uint64")
-            return np.right_shift(product2, 32, dtype="uint64")
+            return np.right_shift(product2, 32, dtype="int64")
  
 
 class TabulationHash(BaseHash):
@@ -60,23 +59,24 @@ class TabulationHash(BaseHash):
         self.t = int(np.ceil(p/r))
         self.fun = {
             key: np.asarray([
-                rng.integers(0, 2**self.q, (self.t, 2**self.r), dtype = "uint64") 
+                rng.integers(0, 2**self.q, (self.t, 2**self.r), dtype = "uint32") 
                 for _ in range(d)
             ]) 
             for key in ["h1", "h2", "s1", "s2"]
         }
-    
+
     def hash(self, name, index, x):
-        res = np.uint64(0)
+        res = np.uint32(0)
         mask = (1 << self.r) - 1
         tab_matrix = self.fun[name][index]
 
         for i in range(self.t):
-            shift = np.right_shift(x, (self.r * i))
-            masked = np.bitwise_and(shift, mask)
-            res = np.bitwise_xor(res, tab_matrix[i][masked])
+            shift = x >> self.r * i
+            masked = shift & mask
+            res ^= tab_matrix[i][masked]
 
         if (name[0] == "s"):
-            return 2 * np.mod(res, 2) - 1
+            return 2 * (res % 2) - 1
         else:
-            return np.mod(res, self.b, dtype = "uint64")
+            return np.mod(res, self.b, dtype = "uint32")
+        
