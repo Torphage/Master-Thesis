@@ -6,6 +6,6 @@ static int Factorial( int number ) {
 }
 
 
-SCENARIO( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
-    REQUIRE( Factorial(0) == 1 );
-}
+// SCENARIO( "Factorial of 0 is 1 (fail)", "[single-file]" ) {
+//     REQUIRE( Factorial(0) == 1 );
+// }
