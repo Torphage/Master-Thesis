@@ -31,8 +31,18 @@ Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &r
     return m;
 }
 
+void round_matrix(Eigen::MatrixXd &matrix, int num_decimals) {
+    for (int i = 0; i < matrix.rows(); i++) {
+        for (int j = 0; j < matrix.cols(); j++) {
+            if (abs(matrix(i,j)) < num_decimals * pow(0.1, num_decimals)) {
+                matrix(i, j) = std::round(matrix(i, j) * num_decimals * 10.0) / (num_decimals * 10.0);
+            } 
+        }
+    }
+}
+
 int main() {
-    int b = 15, d = 16, n = 15;
+    int b = 50, d = 17, n = 16;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(123);
@@ -45,13 +55,17 @@ int main() {
     // Eigen::MatrixXd m2 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
 
     // FullyRandomHash hashes(n, b, d, rng);
-    // MultiplyShiftHash hashes(b, d, rng);
-    int p = 32, q = 32, r = 8;
-    TabulationHash hashes(p, q, r, b ,d, rng);
+    MultiplyShiftHash hashes(b, d, rng);
+    // int p = 32, q = 32, r = 8;
+    // TabulationHash hashes(p, q, r, b ,d, rng);
     
 
     Eigen::MatrixXd prod = compressed_product(m1, m2, hashes);
     Eigen::MatrixXd result = decompress_matrix(prod, n, hashes);
+    Eigen::MatrixXd re = m1*m2;
+
+    round_matrix(result, 12);
+
 
     std::cout << "REAL Result:\n" << m1*m2 << std::endl;
     
