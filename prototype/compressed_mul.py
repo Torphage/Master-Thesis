@@ -11,7 +11,7 @@ def compressed_product(m1, m2, hashes):
     
     for t in range(d):
         for k in range(n):
-            pa, pb = np.zeros(b, dtype="complex128"), np.zeros(b, dtype="complex128")
+            pa, pb = np.zeros(b), np.zeros(b)
 
             for i in range(n):
                 pa[hashes.hash("h1", t, i)] += hashes.hash("s1", t, i) * m1[i, k]
@@ -120,8 +120,16 @@ if __name__ == "__main__":
     # matrix_B = rng.uniform(0,1,(n,n))
     
     # hashes = FullyRandomHash(n, d, b, rng)
-    hashes = MultiplyShiftHash(d, b, rng)
-    # hashes = TabulationHash(16, 64, 64, d, b, rng)
+    # hashes = MultiplyShiftHash(d, b, rng)
+    r, p, q = 8, 32, 32
+    hashes = TabulationHash(r, p, q, d, b, rng)
+
+    print(f"seed={seed}   n={n}   b={b}   d={d}")
+    if hashes.__class__.__name__ == "TabulationHash":
+        print(f"{hashes.__class__.__name__}   r={r}   p={p}   q={q}")
+    else:
+        print(hashes.__class__.__name__)
+    
     
     # Calculate the final matrix product
     p = compressed_product(matrix_A, matrix_B, hashes)
