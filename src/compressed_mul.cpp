@@ -1,4 +1,3 @@
-#include <cassert>
 #include <cmath>
 #include <complex>
 #include <fftw3.h>
@@ -7,6 +6,7 @@
 #include <tuple>
 #include <vector>
 #include "compressed_mul.hpp"
+#include "hashing.hpp"
 
 
 Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, BaseHash &hashes) {

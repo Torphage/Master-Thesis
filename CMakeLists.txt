@@ -24,11 +24,19 @@ target_link_libraries(app Eigen3::Eigen)
 target_link_libraries(app PkgConfig::FFTW)
 
 # Testing
-file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp)
+file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp src/*.cpp src/*.hpp)
+FOREACH(item ${TESTS})
+  IF(${item} MATCHES "src/main.cpp")
+    LIST(REMOVE_ITEM TESTS ${item})
+  ENDIF(${item} MATCHES "src/main.cpp")
+ENDFOREACH(item)
 
 add_executable(tests ${TESTS})
 # These tests can use the Catch2-provided main
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PUBLIC Eigen3::Eigen)
+target_link_libraries(tests PUBLIC PkgConfig::FFTW)
+
 
 # Ensure that changes in test source files trigger a rebuild
 # add_custom_target(tests_rebuild DEPENDS ${TESTS})
