@@ -1,3 +1,7 @@
+#pragma once
+#ifndef HASHING_HPP
+#define HASHING_HPP
+
 #include <random>
 #include <Eigen/Dense>
 #include <unordered_map>
@@ -77,3 +81,5 @@ class TabulationHash : public BaseHash {
     TabulationHash(int p, int q, int r, int b, int d, std::mt19937_64 &rng);
     int hash(std::string name, int index, uint32_t x);
 };
+
+#endif

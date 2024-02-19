@@ -1,3 +1,8 @@
+#pragma once
+#ifndef COMPRESSED_MUL_HPP
+#define COMPRESSED_MUL_HPP
+
+
 #include <Eigen/Dense>
 #include <complex>
 #include <fftw3.h>
@@ -33,3 +38,5 @@ Eigen::MatrixXd decompress_matrix(Eigen::MatrixXd p, int n, BaseHash &hashes);
  * @return The median, with type double
  */
 double find_median(Eigen::VectorXd vec);
+
+#endif
