@@ -1,51 +1,15 @@
 #include <iostream>
 #include <random>
 #include "compressed_mul.hpp"
+#include "hashing.hpp"
+#include "utils.hpp"
 
-
-/**
- * @brief Generates a random sparse square matrix
- * 
- * @param n is the width and height of the generated matrix
- * @param density is the wanted sparsity, specifically the percentage
- *                of how many non-zeros that should be generated 
- * @param rng is the random number generator
- * @return A random square sparse matrix
- */
-Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
-    std::uniform_real_distribution<float> uni(-1.0, 1.0);
-    Eigen::MatrixXd m = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});;
-
-    int num_zeros = static_cast<int>(n * n * (1 - density));
-    std::vector<int> indices(n * n);
-    for (int i = 0; i < n * n; i++) {
-        indices[i] = i;
-    }
-
-    std::shuffle(indices.begin(), indices.end(), rng);
-    for (int i = 0; i < num_zeros; i++) {
-        int index = indices[i];
-        m(index / n, index % n) = 0.0;
-    }
-
-    return m;
-}
-
-void round_matrix(Eigen::MatrixXd &matrix, int num_decimals) {
-    for (int i = 0; i < matrix.rows(); i++) {
-        for (int j = 0; j < matrix.cols(); j++) {
-            if (abs(matrix(i,j)) < num_decimals * pow(0.1, num_decimals)) {
-                matrix(i, j) = std::round(matrix(i, j) * num_decimals * 10.0) / (num_decimals * 10.0);
-            } 
-        }
-    }
-}
 
 int main() {
-    int b = 50, d = 17, n = 16;
+    int b = 40, d = 17, n = 16;
 
     unsigned int seed = std::random_device{}();
-    std::mt19937_64 rng(123);
+    std::mt19937_64 rng(seed);
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
 
     Eigen::MatrixXd m1 = sparse_matrix_generator(n, 0.05, rng);
@@ -55,21 +19,24 @@ int main() {
     // Eigen::MatrixXd m2 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
 
     // FullyRandomHash hashes(n, b, d, rng);
-    MultiplyShiftHash hashes(b, d, rng);
-    // int p = 32, q = 32, r = 8;
-    // TabulationHash hashes(p, q, r, b ,d, rng);
+    // MultiplyShiftHash hashes(b, d, rng);
+    int p = 32, q = 32, r = 8;
+    TabulationHash hashes(p, q, r, b ,d, rng);
     
 
     Eigen::MatrixXd prod = compressed_product(m1, m2, hashes);
     Eigen::MatrixXd result = decompress_matrix(prod, n, hashes);
-    Eigen::MatrixXd re = m1*m2;
 
-    round_matrix(result, 12);
+    Eigen::MatrixXd real_product = m1*m2;
 
-
-    std::cout << "REAL Result:\n" << m1*m2 << std::endl;
+    std::cout << "\n--------- Real result ---------" << std::endl;
+    std::cout << "Sum of elements: " << sum_matrix(real_product) << std::endl;
+    std::cout << real_product << std::endl;
     
-    std::cout << "Result:\n" << result << std::endl;
+    std::cout << "\n--------- Approximate result ---------" << std::endl;
+    std::cout << "Sum of elements: " << sum_matrix(result) << std::endl;
+    round_matrix(result, 12);
+    std::cout << result << std::endl;
 
     return 0;
 }
