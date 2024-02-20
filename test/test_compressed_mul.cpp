@@ -56,6 +56,7 @@ void test_compressed_mul(int n, int b, int d, BaseHash &hashes, BaseHash &large_
             WHEN("random times random, correct with prob (very very very close to) 1, (should almost never fail)") {
                 REQUIRE(result.isApprox(expected));
             }
+            
         }
     }
 }
@@ -65,7 +66,7 @@ TEST_CASE("Compressed multiplication tests") {
     std::mt19937_64 rng(seed);
 
 
-    int n = 10;
+    int n = 16;
     int b = 4;
     int d = 2;
 
@@ -88,9 +89,9 @@ TEST_CASE("Compressed multiplication tests") {
 }
 
 TEST_CASE("Checking the variance bounds of the whole algorithm") {
-    uint64_t N_SAMPLES = 2000;
+    uint64_t N_SAMPLES = 2000000;
 
-    int n = 10, b = 4, d = 2;
+    int n = 8, b = 4, d = 1;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
@@ -98,30 +99,25 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
 
     Eigen::MatrixXd m1;
     Eigen::MatrixXd m2;
-    Eigen::MatrixXd compressed;
-    Eigen::MatrixXd result;
-    Eigen::MatrixXd result2;
-    Eigen::MatrixXd expected;
+    HashInfo hash_info;
+
     GIVEN("Two uniformly distributed matrices") {
         m1 = Eigen::MatrixXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         m2 = Eigen::MatrixXd::NullaryExpr(n, n, [&]() { return uni(rng); });
-        std::vector<Eigen::MatrixXd> vec;
-        // Eigen::VectorXd v1 = Eigen::VectorXd::Random(5);
-        // double var = variance(v1);
         SECTION("Fully-Random hash") {
-            FullyRandomHash hashes(n, b, d, rng);
-            for (int i = 0; i < N_SAMPLES; i++) {
-                compressed = compressed_product(m1, m2, hashes);
-                result = decompress_matrix(compressed, n, hashes);
-                vec.push_back(result);
-            }
-            result2 = variance3d(vec);
-            std::cout << "Variance:" << "\n" << result2;
-            REQUIRE(result2.isApprox(Eigen::MatrixXd::Zero(n, n)));
+            hash_info = {"FullyRandomHash", rng, b, d, n, 0, 0, 0};
+            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            REQUIRE((true == bound_hold));
         }
         SECTION("Multiply-Shift hash") {
+            // hash_info = {"FullyRandomHash", rng, b, d, 0, 0, 0, 0};
+            // bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            // REQUIRE((true == bound_hold));
         }
         SECTION("Tabulation hash") {
+            // hash_info = {"TabulationHash", rng, b, d, 0, p, q, r};
+            // bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            // REQUIRE((true == bound_hold));
         }
     }
     GIVEN("Two sparse matrices") {
@@ -136,6 +132,11 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
     }
 }
 
-SCENARIO("Hyperparameters") {
-    REQUIRE(1 == 1);
+
+SCENARIO("Compress") {
+
+}
+
+SCENARIO("Decompress") {
+    
 }

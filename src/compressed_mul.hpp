@@ -11,6 +11,9 @@
 
 typedef std::complex<double> Complex;
 
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXd;
+typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXcd;
+
 /**
  * @brief 
  * 

@@ -6,14 +6,15 @@
 
 
 int main() {
-    int b = 40, d = 17, n = 16;
+    int b = 15, d = 14, n = 10;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
+    std::mt19937_64 rng2(2);
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
 
-    Eigen::MatrixXd m1 = sparse_matrix_generator(n, 0.05, rng);
-    Eigen::MatrixXd m2 = sparse_matrix_generator(n, 0.05, rng);
+    Eigen::MatrixXd m1 = sparse_matrix_generator(n, 0.1, rng2);
+    Eigen::MatrixXd m2 = sparse_matrix_generator(n, 0.1, rng2);
 
     // Eigen::MatrixXd m1 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
     // Eigen::MatrixXd m2 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
