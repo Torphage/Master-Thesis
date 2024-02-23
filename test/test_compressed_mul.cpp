@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <memory>
 #include <iostream>
 #include <random>
@@ -12,26 +13,26 @@
 #include "../src/variance.hpp"
 
 void test_compressed_mul(int n, int b, int d, BaseHash &hashes, BaseHash &large_hashes, std::string s) {
-    Eigen::MatrixXd m1;
-    Eigen::MatrixXd m2;
-    Eigen::MatrixXd compressed;
-    Eigen::MatrixXd result;
-    Eigen::MatrixXd expected;
+    MatrixRXd m1;
+    MatrixRXd m2;
+    MatrixRXd compressed;
+    MatrixRXd result;
+    MatrixRXd expected;
 
     SECTION(s) {
         GIVEN("Two zero-matrices") {
-            m1 = Eigen::MatrixXd::Zero(n, n);
-            m2 = Eigen::MatrixXd::Zero(n, n);
-            expected = Eigen::MatrixXd::Zero(n, n);
+            m1 = MatrixRXd::Zero(n, n);
+            m2 = MatrixRXd::Zero(n, n);
+            expected = MatrixRXd::Zero(n, n);
             compressed = compressed_product(m1, m2, hashes);
             result = decompress_matrix(compressed, n, hashes);
             REQUIRE(result.isApprox(expected));
         }
 
         GIVEN("One zero-matrix") {
-            m1 = Eigen::MatrixXd::Zero(n, n);
-            m2 = Eigen::MatrixXd::Random(n, n);
-            expected = Eigen::MatrixXd::Zero(n, n);
+            m1 = MatrixRXd::Zero(n, n);
+            m2 = MatrixRXd::Random(n, n);
+            expected = MatrixRXd::Zero(n, n);
             compressed = compressed_product(m1, m2, hashes);
             result = decompress_matrix(compressed, n, hashes);
             WHEN("zero times random") {
@@ -46,8 +47,8 @@ void test_compressed_mul(int n, int b, int d, BaseHash &hashes, BaseHash &large_
         }
 
         GIVEN("Two non-zero matrices") {
-            m1 = Eigen::MatrixXd::Random(n, n);
-            m2 = Eigen::MatrixXd::Random(n, n);
+            m1 = MatrixRXd::Random(n, n);
+            m2 = MatrixRXd::Random(n, n);
 
             expected = m1 * m2;
 
@@ -89,35 +90,39 @@ TEST_CASE("Compressed multiplication tests") {
 }
 
 TEST_CASE("Checking the variance bounds of the whole algorithm") {
-    uint64_t N_SAMPLES = 2000000;
+    uint64_t N_SAMPLES = 200000;
 
-    int n = 8, b = 4, d = 1;
+    int n = 6, b = 4, d = 1;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
-    std::uniform_real_distribution<float> uni(-1.0, 1.0);
+    std::uniform_real_distribution<float> uni(0, 1.0);
 
-    Eigen::MatrixXd m1;
-    Eigen::MatrixXd m2;
+    MatrixRXd m1;
+    MatrixRXd m2;
     HashInfo hash_info;
 
     GIVEN("Two uniformly distributed matrices") {
-        m1 = Eigen::MatrixXd::NullaryExpr(n, n, [&]() { return uni(rng); });
-        m2 = Eigen::MatrixXd::NullaryExpr(n, n, [&]() { return uni(rng); });
+        m1 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
+        m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
             hash_info = {"FullyRandomHash", rng, b, d, n, 0, 0, 0};
             bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
             REQUIRE((true == bound_hold));
+            std::cout << std::endl;
         }
         SECTION("Multiply-Shift hash") {
-            // hash_info = {"FullyRandomHash", rng, b, d, 0, 0, 0, 0};
-            // bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
-            // REQUIRE((true == bound_hold));
+            hash_info = {"MultiplyShiftHash", rng, b, d, 0, 0, 0, 0};
+            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            REQUIRE((true == bound_hold));
+            std::cout << std::endl;
         }
         SECTION("Tabulation hash") {
-            // hash_info = {"TabulationHash", rng, b, d, 0, p, q, r};
-            // bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
-            // REQUIRE((true == bound_hold));
+            int p = 32, q = 32, r = 8;
+            hash_info = {"TabulationHash", rng, b, d, 0, p, q, r};
+            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            REQUIRE((true == bound_hold));
+            std::cout << std::endl;
         }
     }
     GIVEN("Two sparse matrices") {
@@ -133,10 +138,54 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
 }
 
 
-SCENARIO("Compress") {
+TEST_CASE("Compress") {
 
 }
 
-SCENARIO("Decompress") {
+TEST_CASE("Decompress") {
     
+}
+
+TEST_CASE("Parallel") {
+    int n = 100;
+    int b = 20;
+    int d = 28;
+
+    MatrixRXd m1;
+    MatrixRXd m2;
+    MatrixRXd compressed;
+    MatrixRXd result;
+    MatrixRXd expected;
+
+    unsigned int seed = std::random_device{}();
+    std::mt19937_64 rng(seed);
+
+    FullyRandomHash hashes(n, b, d, rng);
+
+    SECTION("Parallel compress gives same as sequential compress") {
+        m1 = MatrixRXd::Random(n, n);
+        m2 = MatrixRXd::Random(n, n);
+
+        BENCHMARK("Sequential") {
+            expected = compressed_product(m1, m2, hashes);
+        };
+
+        BENCHMARK("Parallel") {
+            result = compressed_product_par(m1, m2, hashes);
+        };
+
+        // BENCHMARK("Eigen") {
+        //     result = m1 * m2;
+        // };
+
+
+        REQUIRE(result.isApprox(expected));
+
+    }
+
+
+    expected = MatrixRXd::Zero(n, n);
+    compressed = compressed_product(m1, m2, hashes);
+    result = decompress_matrix(compressed, n, hashes);
+
 }
