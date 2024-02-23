@@ -5,6 +5,11 @@
 #include <Eigen/Dense>
 #include <random>
 
+typedef std::complex<double> Complex;
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXd;
+typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXcd;
+
 /**
  * @brief Generates a random sparse square matrix
  * 
@@ -14,7 +19,7 @@
  * @param rng is the random number generator
  * @return A random square sparse matrix
  */
-Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng);
+MatrixRXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng);
 
 /**
  * @brief Rounds the values in a matrix to the n-th decimal.
@@ -24,7 +29,7 @@ Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &r
  * @param matrix is the matrix to be rounded
  * @param n is how many decimals that should be kept
  */
-void round_matrix(Eigen::MatrixXd &matrix, int n);
+void round_matrix(MatrixRXd &matrix, int n);
 
 /**
  * @brief Calculates the total sum of all the values in a matrix
@@ -32,7 +37,16 @@ void round_matrix(Eigen::MatrixXd &matrix, int n);
  * @param matrix is the matrix to get the values from
  * @return The total sum of all the values in the given matrix
  */
-double sum_matrix(Eigen::MatrixXd &matrix);
+double sum_matrix(MatrixRXd &matrix);
 
+/**
+ * @brief Calculates the median of a Eigen vector
+ * 
+ * @param vec A dynamic Eigen vector with doubles 
+ * @return The median, with type double
+ */
+double find_median(Eigen::VectorXd vec);
+
+void progress_bar(double percentage);
 
 #endif

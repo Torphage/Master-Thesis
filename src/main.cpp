@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+
 #include "compressed_mul.hpp"
 #include "hashing.hpp"
 #include "utils.hpp"
@@ -13,11 +14,11 @@ int main() {
     std::mt19937_64 rng2(2);
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
 
-    Eigen::MatrixXd m1 = sparse_matrix_generator(n, 0.1, rng2);
-    Eigen::MatrixXd m2 = sparse_matrix_generator(n, 0.1, rng2);
+    MatrixRXd m1 = sparse_matrix_generator(n, 0.1, rng2);
+    MatrixRXd m2 = sparse_matrix_generator(n, 0.1, rng2);
 
-    // Eigen::MatrixXd m1 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
-    // Eigen::MatrixXd m2 = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});
+    // MatrixRXd m1 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
+    // MatrixRXd m2 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
 
     // FullyRandomHash hashes(n, b, d, rng);
     // MultiplyShiftHash hashes(b, d, rng);
@@ -25,10 +26,10 @@ int main() {
     TabulationHash hashes(p, q, r, b ,d, rng);
     
 
-    Eigen::MatrixXd prod = compressed_product(m1, m2, hashes);
-    Eigen::MatrixXd result = decompress_matrix(prod, n, hashes);
+    MatrixRXd prod = compressed_product_par(m1, m2, hashes);
+    MatrixRXd result = decompress_matrix(prod, n, hashes);
 
-    Eigen::MatrixXd real_product = m1*m2;
+    MatrixRXd real_product = m1*m2;
 
     std::cout << "\n--------- Real result ---------" << std::endl;
     std::cout << "Sum of elements: " << sum_matrix(real_product) << std::endl;

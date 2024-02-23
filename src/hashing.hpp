@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 
-typedef Eigen::Matrix<uint64_t, Eigen::Dynamic, Eigen::Dynamic> MatrixXui;
+typedef Eigen::Matrix<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
 
 /**
  * @brief 
@@ -20,6 +20,7 @@ class BaseHash {
     int b;
     int d;
     BaseHash(int b, int d, std::mt19937_64 &rng);
+    virtual ~BaseHash() = default;
     /**
      * @brief 
      * 

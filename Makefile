@@ -29,3 +29,9 @@ test:
 all:
 	$(MAKE) build
 	$(MAKE) run
+
+# Specific tests
+
+parallel:
+	$(MAKE) build
+	./build/tests "Parallel"

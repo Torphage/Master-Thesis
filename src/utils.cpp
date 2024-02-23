@@ -1,12 +1,15 @@
 #include <Eigen/Dense>
 #include <random>
 #include <cmath>
+#include <iostream>
+
+#include "utils.hpp"
 
 
 
-Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
+MatrixRXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
-    Eigen::MatrixXd m = Eigen::MatrixXd::NullaryExpr(n,n,[&](){return uni(rng);});;
+    MatrixRXd m = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});;
 
     int num_zeros = static_cast<int>(n * n * (1 - density));
     std::vector<int> indices(n * n);
@@ -23,7 +26,7 @@ Eigen::MatrixXd sparse_matrix_generator(int n, float density, std::mt19937_64 &r
     return m;
 }
 
-void round_matrix(Eigen::MatrixXd &matrix, int n) {
+void round_matrix(MatrixRXd &matrix, int n) {
     for (int i = 0; i < matrix.rows(); i++) {
         for (int j = 0; j < matrix.cols(); j++) {
             if (abs(matrix(i,j)) < pow(0.1, n)) {
@@ -33,7 +36,7 @@ void round_matrix(Eigen::MatrixXd &matrix, int n) {
     }
 }
 
-double sum_matrix(Eigen::MatrixXd &matrix) {
+double sum_matrix(MatrixRXd &matrix) {
     double res = 0;
     for (int i = 0; i < matrix.rows(); i++) {
         for (int j = 0; j < matrix.cols(); j++) {
@@ -41,5 +44,38 @@ double sum_matrix(Eigen::MatrixXd &matrix) {
         }
     }
     return res;
+}
+
+double find_median(Eigen::VectorXd vec) {
+    int n = vec.size();
+    int targetIndex = n / 2;
+    double *data = vec.data();
+    
+    std::nth_element(data, data + n / 2, data + n); 
+    double median1 = vec(targetIndex);
+
+    if (n % 2 != 0) { 
+        return median1; 
+    } 
+
+    std::nth_element(data, data + (n - 1) / 2, data + n); 
+    double median2 = vec(targetIndex - 1);
+  
+    return (median1 + median2) / 2.0; 
+} 
+
+
+void progress_bar(double percentage) {
+    int barWidth = 70;
+
+    std::cout << "[";
+    int pos = barWidth * percentage;
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(percentage * 100.0) << " %\r";
+    std::cout.flush();
 }
 

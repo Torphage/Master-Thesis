@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 
 #include "hashing.hpp"
+#include "utils.hpp"
 
 struct HashInfo {
     std::string id;
@@ -21,8 +22,8 @@ struct HashInfo {
 
 double variance(Eigen::VectorXd &vec);
 
-Eigen::MatrixXd variance3d(std::vector<Eigen::MatrixXd> &mat);
+MatrixRXd variance3d(std::vector<MatrixRXd> &mat);
 
-bool test_variance(Eigen::MatrixXd m1, Eigen::MatrixXd m2, HashInfo &hashes, int num_samples);
+bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &hashes, int num_samples);
 
 #endif
