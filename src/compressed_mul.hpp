@@ -6,13 +6,10 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <fftw3.h>
+
 #include "hashing.hpp"
+#include "utils.hpp"
 
-
-typedef std::complex<double> Complex;
-
-typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXd;
-typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXcd;
 
 /**
  * @brief 
@@ -20,9 +17,12 @@ typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> 
  * @param m1 
  * @param m2 
  * @param hashes 
- * @return Eigen::MatrixXd 
+ * @return MatrixRXd 
  */
-Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::MatrixXd &m2, BaseHash &hashes);
+MatrixRXd compressed_product(const MatrixRXd &m1, const MatrixRXd &m2, BaseHash &hashes);
+
+
+MatrixRXd compressed_product_par(const MatrixRXd &m1, const MatrixRXd &m2, BaseHash &hashes);
 
 /**
  * @brief 
@@ -30,16 +30,8 @@ Eigen::MatrixXd compressed_product(const Eigen::MatrixXd &m1, const Eigen::Matri
  * @param p 
  * @param n 
  * @param hashes 
- * @return Eigen::MatrixXd 
+ * @return MatrixRXd 
  */
-Eigen::MatrixXd decompress_matrix(Eigen::MatrixXd p, int n, BaseHash &hashes);
-
-/**
- * @brief Calculates the median of a Eigen vector
- * 
- * @param vec A dynamic Eigen vector with doubles 
- * @return The median, with type double
- */
-double find_median(Eigen::VectorXd vec);
+MatrixRXd decompress_matrix(MatrixRXd p, int n, BaseHash &hashes);
 
 #endif
