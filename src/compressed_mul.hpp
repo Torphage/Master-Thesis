@@ -34,4 +34,6 @@ MatrixRXd compressed_product_par(const MatrixRXd &m1, const MatrixRXd &m2, BaseH
  */
 MatrixRXd decompress_matrix(MatrixRXd p, int n, BaseHash &hashes);
 
+MatrixRXd decompress_matrix_par(MatrixRXd p, int n, BaseHash &hashes);
+
 #endif

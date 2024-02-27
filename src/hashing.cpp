@@ -23,13 +23,10 @@ FullyRandomHash::FullyRandomHash(int n, int b, int d, std::mt19937_64 &rng)
         s2.data()[i] = (rng() % 2 == 0) ? 1 : -1;
     }
     
-    map["h1"] = h1;
-    map["h2"] = h2;
-    map["s1"] = s1;
-    map["s2"] = s2;
+    map = {h1, h2, s1, s2};
 }
 
-int FullyRandomHash::hash(std::string name, int index, uint32_t x) {
+int FullyRandomHash::hash(int name, int index, uint32_t x) {
     return map[name](index, x);
 }
 
@@ -46,13 +43,10 @@ MultiplyShiftHash::MultiplyShiftHash(int b, int d, std::mt19937_64 &rng)
         s2.data()[i] = uni(rng);
     }
     
-    map["h1"] = h1;
-    map["h2"] = h2;
-    map["s1"] = s1;
-    map["s2"] = s2;
+    map = {h1, h2, s1, s2};
 }
 
-int MultiplyShiftHash::hash(std::string name, int index, uint32_t x) {
+int MultiplyShiftHash::hash(int name, int index, uint32_t x) {
     uint64_t u = map[name](index, 0);
     uint64_t v = map[name](index, 1);
 
@@ -61,7 +55,7 @@ int MultiplyShiftHash::hash(std::string name, int index, uint32_t x) {
     uint64_t intermediate = sum1 >> 32;
     
     uint64_t product;
-    if (name.at(0) == 'h') {
+    if (name == 0 || name == 1) {
         product = intermediate * b;
         return product >> 32;
     } else {
@@ -78,8 +72,8 @@ TabulationHash::TabulationHash(int p, int q, int r, int b, int d, std::mt19937_6
     std::uniform_int_distribution<int> uni(0, pow(2, q));
     int size = pow(2, r);
 
+    MatrixXui h1(t, size), h2(t, size), s1(t, size), s2(t, size);
     for (int k = 0; k < d; k++) {
-        MatrixXui h1(t, size), h2(t, size), s1(t, size), s2(t, size);
     
         for (int i = 0; i < t * size; i++) {
             h1.data()[i] = uni(rng);
@@ -87,14 +81,15 @@ TabulationHash::TabulationHash(int p, int q, int r, int b, int d, std::mt19937_6
             s1.data()[i] = uni(rng);
             s2.data()[i] = uni(rng);
         }
-        map["h1"].push_back(h1);
-        map["h2"].push_back(h2);
-        map["s1"].push_back(s1);
-        map["s2"].push_back(s2);
+
+        map[0].push_back(h1); // index 0
+        map[1].push_back(h2); // index 1
+        map[2].push_back(s1); // index 2
+        map[3].push_back(s2); // index 3
     }
 }
 
-int TabulationHash::hash(std::string name, int index, uint32_t x) {    
+int TabulationHash::hash(int name, int index, uint32_t x) {    
     uint32_t res = 0;
     MatrixXui tab_matrix = map[name][index];
     int mask = (1 << r) - 1;
@@ -105,7 +100,7 @@ int TabulationHash::hash(std::string name, int index, uint32_t x) {
         res ^= tab_matrix(i, masked);
     }
 
-    if (name.at(0) == 'h') {
+    if (name == 0 || name == 1) {
         return res % b;
     } else {
         return 2 * static_cast<int>(res % 2) - 1;

@@ -29,7 +29,7 @@ class BaseHash {
      * @param x 
      * @return int 
      */
-    virtual int hash(std::string name, int index, uint32_t x) = 0;
+    virtual int hash(int name, int index, uint32_t x) = 0;
 };
 
 /**
@@ -42,10 +42,11 @@ class FullyRandomHash : public BaseHash {
      * @brief A hash-map, containing the hashing methods, with strings as keys.
      * Acceptable keys are `"h1"`, `"h2"`, `"s1"` and `"s2"`
      */
-    std::unordered_map<std::string, MatrixXui> map;
+    // std::unordered_map<std::string, MatrixXui> map;
+    std::array<MatrixXui, 4> map;
   public:
     FullyRandomHash(int n, int b, int d, std::mt19937_64 &rng);
-    int hash(std::string name, int index, uint32_t x);
+    int hash(int name, int index, uint32_t x);
 };
 
 /**
@@ -57,10 +58,10 @@ class MultiplyShiftHash : public BaseHash {
       * @brief A hash-map, containing the hashing methods, with strings as keys.
       * Acceptable keys are `"h1"`, `"h2"`, `"s1"` and `"s2"`
       */
-    std::unordered_map<std::string, MatrixXui> map;
+    std::array<MatrixXui, 4> map;
   public:
     MultiplyShiftHash(int b, int d, std::mt19937_64 &rng);
-    int hash(std::string name, int index, uint32_t x);
+    int hash(int name, int index, uint32_t x);
 };
 
 
@@ -77,10 +78,10 @@ class TabulationHash : public BaseHash {
      * @brief A vector of hash-maps, containing the hashing methods, with strings as keys.
      * Acceptable keys are `"h1"`, `"h2"`, `"s1"` and `"s2"`
      */
-    std::unordered_map<std::string, std::vector<MatrixXui>> map;
+    std::array<std::vector<MatrixXui>, 4> map;
   public:
     TabulationHash(int p, int q, int r, int b, int d, std::mt19937_64 &rng);
-    int hash(std::string name, int index, uint32_t x);
+    int hash(int name, int index, uint32_t x);
 };
 
 #endif

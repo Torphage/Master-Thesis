@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <omp.h>
 
 #include "compressed_mul.hpp"
 #include "utils.hpp"
@@ -22,25 +23,22 @@ MatrixRXd variance3d(std::vector<MatrixRXd> &mat) {
         for (int k = 0; k < m; k++) { // The column of 2d matrix
             Eigen::VectorXd vec = Eigen::VectorXd::Zero(mat.size());
             for (int i = 0; i < mat.size(); i++) { // Which matrix
-                // std::cout << "vec(i): " << mat[i](j, k) << std::endl;
                 vec(i) = mat[i](j, k);
             }
-            // exit(0);
             result(j, k) = variance(vec);
         }
     }
     return result;
 }
 
-bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &h, int num_samples) {
-    
-    MatrixRXd compressed;
-    MatrixRXd decompressed;
-    MatrixRXd result;
-    MatrixRXd expected;
+bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &h, int num_samples) {    
+    int n = m1.rows();
     int b = h.b;
     int d = h.d;
-    int n = m1.rows();
+
+    MatrixRXd compressed;
+    MatrixRXd decompressed;
+
     std::vector<MatrixRXd> vec;
     std::unique_ptr<BaseHash> hashes;
 
@@ -61,7 +59,7 @@ bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &h, int num_samples) {
             progress_bar((i + 1.0) / (num_samples));
         }
     }
-    result = variance3d(vec);
+    MatrixRXd result = variance3d(vec);
 
     // std::cout << "Variance:" << "\n" << result << std::endl << std::endl;
     // std::cout << "Sum of variance: " << sum_matrix(result) << std::endl;
