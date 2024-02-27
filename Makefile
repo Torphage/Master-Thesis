@@ -22,7 +22,7 @@ run:
 trun:
 	./build/tests
 
-test:
+alltest:
 	$(MAKE) build
 	$(MAKE) trun
 
@@ -32,10 +32,6 @@ all:
 
 # Specific tests
 
-parallel:
+test:
 	$(MAKE) build
-	./build/tests "Parallel"
-
-benchmark:
-	$(MAKE) build
-	./build/tests "Benchmarks"
+	./build/tests $(p)

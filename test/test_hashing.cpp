@@ -16,7 +16,7 @@ SCENARIO("HASHING") {
 
     SECTION("Multiply-Shift") {
         GIVEN("an uint32") {
-            uint32_t x = UINT32_MAX - 5;
+            // uint32_t x = UINT32_MAX - 5;
             WHEN("right shift") {
                 THEN("gives type ???") {
                     // auto prod = (UINT32_MAX - 5) * (UINT64_MAX - 3);

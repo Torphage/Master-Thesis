@@ -5,6 +5,14 @@ DESCRIPTION "Compressed Matrix Multiplication"
 LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 17)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+
 enable_testing()
 
 
@@ -50,6 +58,8 @@ target_link_libraries(tests PUBLIC PkgConfig::FFTW)
 # Ensure that changes in test source files trigger a rebuild
 # add_custom_target(tests_rebuild DEPENDS ${TESTS})
 
+# Uncomment this to disable eigen parallelism 
+# add_compile_definitions(EIGEN_DONT_PARALLELIZE)
 
 include(CTest)
 include(Catch)

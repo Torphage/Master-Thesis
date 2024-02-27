@@ -37,7 +37,6 @@ class BaseHash {
  * 
  */
 class FullyRandomHash : public BaseHash {
-    int n;
     /**
      * @brief A hash-map, containing the hashing methods, with strings as keys.
      * Acceptable keys are `"h1"`, `"h2"`, `"s1"` and `"s2"`
@@ -70,8 +69,6 @@ class MultiplyShiftHash : public BaseHash {
  * 
  */
 class TabulationHash : public BaseHash {
-    int p;
-    int q;
     int r;
     int t;
     /**

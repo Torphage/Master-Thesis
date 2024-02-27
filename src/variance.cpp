@@ -22,7 +22,7 @@ MatrixRXd variance3d(std::vector<MatrixRXd> &mat) {
     for (int j = 0; j < n; j++) { // The row of 2d matrix
         for (int k = 0; k < m; k++) { // The column of 2d matrix
             Eigen::VectorXd vec = Eigen::VectorXd::Zero(mat.size());
-            for (int i = 0; i < mat.size(); i++) { // Which matrix
+            for (unsigned long i = 0; i < mat.size(); i++) { // Which matrix
                 vec(i) = mat[i](j, k);
             }
             result(j, k) = variance(vec);
@@ -32,9 +32,13 @@ MatrixRXd variance3d(std::vector<MatrixRXd> &mat) {
 }
 
 bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &h, int num_samples) {    
-    int n = m1.rows();
+    int n = h.n;
     int b = h.b;
     int d = h.d;
+    int p = h.p;
+    int q = h.q;
+    int r = h.r;
+    std::mt19937_64 rng = h.rng;
 
     MatrixRXd compressed;
     MatrixRXd decompressed;
@@ -44,11 +48,11 @@ bool test_variance(MatrixRXd m1, MatrixRXd m2, HashInfo &h, int num_samples) {
 
     for (int i = 0; i < num_samples; i++) {
         if (h.id == "FullyRandomHash") {
-            hashes = std::make_unique<FullyRandomHash>(h.n, h.b, h.d, h.rng);
+            hashes = std::make_unique<FullyRandomHash>(n, b, d, rng);
         } else if (h.id == "MultiplyShiftHash") {
-            hashes = std::make_unique<MultiplyShiftHash>(h.b, h.d, h.rng);
+            hashes = std::make_unique<MultiplyShiftHash>(b, d, rng);
         } else if (h.id == "TabulationHash") {
-            hashes = std::make_unique<TabulationHash>(h.p, h.q, h.r, h.b, h.d, h.rng);
+            hashes = std::make_unique<TabulationHash>(p, q, r, b, d, rng);
         }
 
         compressed = compressed_product(m1, m2, *hashes);

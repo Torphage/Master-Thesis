@@ -1,12 +1,16 @@
 #include <iostream>
 #include <random>
 
+// #define EIGEN_USE_BLAS
+
 #include "compressed_mul.hpp"
 #include "hashing.hpp"
 #include "utils.hpp"
 
 
 int main() {
+
+
     int b = 15, d = 14, n = 10;
 
     unsigned int seed = std::random_device{}();
@@ -26,8 +30,8 @@ int main() {
     // TabulationHash hashes(p, q, r, b ,d, rng);
     
 
-    MatrixRXd prod = compressed_product_par(m1, m2, hashes);
-    MatrixRXd result = decompress_matrix_par(prod, n, hashes);
+    MatrixRXd prod = compressed_product(m1, m2, hashes);
+    MatrixRXd result = decompress_matrix(prod, n, hashes);
 
     MatrixRXd real_product = m1*m2;
 

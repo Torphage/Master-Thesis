@@ -5,13 +5,13 @@
 
 
 BaseHash::BaseHash(int b, int d, std::mt19937_64 &rng) 
-    : b(b)
+    : rng(rng)
+    , b(b)
     , d(d)
-    , rng(rng)
     {}
 
 FullyRandomHash::FullyRandomHash(int n, int b, int d, std::mt19937_64 &rng) 
-: BaseHash(b, d, rng), n(n) {
+: BaseHash(b, d, rng) {
     MatrixXui h1(d, n), h2(d, n), s1(d, n), s2(d, n);
 
     std::uniform_int_distribution<uint32_t> bi(0, b - 1);
@@ -66,7 +66,7 @@ int MultiplyShiftHash::hash(int name, int index, uint32_t x) {
 
 
 TabulationHash::TabulationHash(int p, int q, int r, int b, int d, std::mt19937_64 &rng) 
-: BaseHash(b, d, rng), p(p), q(q), r(r) {
+: BaseHash(b, d, rng), r(r) {
     t = ceil(p / r);
 
     std::uniform_int_distribution<int> uni(0, pow(2, q));

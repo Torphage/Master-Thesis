@@ -73,7 +73,7 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, BaseHash&
     MatrixRXcd p = MatrixRXcd::Zero(d, b);
     MatrixRXd p_real = MatrixRXd::Zero(d, b);
 
-    int t, k, i, index1, index2;
+    int t, k, i;
     Complex d1, d2;
 
     Eigen::VectorXd pa = Eigen::VectorXd::Zero(b);
@@ -82,8 +82,6 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, BaseHash&
     // 🅱️alloc
     fftw_complex* out1 = fftw_alloc_complex(b / 2 + 1);
     fftw_complex* out2 = fftw_alloc_complex(b / 2 + 1);
-    fftw_complex* in = fftw_alloc_complex(b);
-    double* out = fftw_alloc_real(2 * (b / 2 + 1));
 
     fftw_plan plan1 = fftw_plan_dft_r2c_1d(b, pa.data(), out1, FFTW_ESTIMATE);
     fftw_plan plan2 = fftw_plan_dft_r2c_1d(b, pb.data(), out2, FFTW_ESTIMATE);
@@ -109,31 +107,13 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, BaseHash&
         }
     }
 
-    plan1 = fftw_plan_dft_c2r_1d(b, in, out, FFTW_ESTIMATE);
+    fftw_free(out1);
+    fftw_free(out2);
 
-    for (t = 0; t < d; t++) {
-        // Copy data from p to in, otherwise p would be overwritten later
-        for (int i = 0; i < b; i++) {
-            in[i][0] = p(t, i).real();
-            in[i][1] = p(t, i).imag();
-        }
-
-        fftw_execute(plan1);
-
-        for (i = 0; i < b; i++) {
-            p_real(t, i) = out[i] / b;
-        }
-    }
-
-    // Destroy the plans
     fftw_destroy_plan(plan1);
     fftw_destroy_plan(plan2);
 
-    // Free EVERYTHING
-    fftw_free(in);
-    fftw_free(out1);
-    fftw_free(out2);
-    fftw_free(out);
+    p_real = compressed_ifft(p, b, d);
 
     return p_real;
 }
@@ -156,8 +136,9 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, BaseH
     std::vector<fftw_plan> plans1;
     std::vector<fftw_plan> plans2;
 
+    int offset;
     for (int t = 0; t < d; t++) {
-        int offset = t * b / 2 + 1;
+        offset = t * (b / 2 + 1);
         plans1.push_back(fftw_plan_dft_r2c_1d(b, pas.row(t).data(), out1 + offset, FFTW_ESTIMATE));
         plans2.push_back(fftw_plan_dft_r2c_1d(b, pbs.row(t).data(), out2 + offset, FFTW_ESTIMATE));
     }
@@ -166,10 +147,11 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, BaseH
     for (int t = 0; t < d; t++) {
         Complex d1;
         Complex d2;
-        int offset = t * b / 2 + 1;
+        int offset = t * (b / 2 + 1);
         for (int k = 0; k < n; k++) {
             pas.row(t).setZero();
             pbs.row(t).setZero();
+
             for (int i = 0; i < n; i++) {
                 pas(t, hashes.hash(0, t, i)) += hashes.hash(2, t, i) * m1(i, k);
                 pbs(t, hashes.hash(1, t, i)) += hashes.hash(3, t, i) * m2(k, i);
