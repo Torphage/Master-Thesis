@@ -35,3 +35,7 @@ all:
 parallel:
 	$(MAKE) build
 	./build/tests "Parallel"
+
+benchmark:
+	$(MAKE) build
+	./build/tests "Benchmarks"
