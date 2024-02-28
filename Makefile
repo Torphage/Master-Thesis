@@ -9,11 +9,11 @@ clean:
 
 build:
 	mkdir -p build
-	cmake --build build -j 2
+	cmake --build build -j 2 
 
 rebuild:
 	$(MAKE) clean
-	cmake -S . -B ./build
+	cmake -D USE_$(d)=ON -S . -B ./build
 	cmake --build build -j 2
 
 run:
@@ -35,3 +35,6 @@ all:
 test:
 	$(MAKE) build
 	./build/tests $(p)
+
+
+# make rebuild d="-DUSE_ACCELERATE=ON"
