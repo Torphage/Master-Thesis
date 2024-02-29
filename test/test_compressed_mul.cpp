@@ -1,68 +1,17 @@
 
-#include <Eigen/Dense>
-#include <Eigen/Core>
+#include "test_compressed_mul.hpp"
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include <iostream>
 #include <memory>
 #include <random>
 #include <vector>
 
 #include "../src/compressed_mul.hpp"
-#include "../src/hashing.hpp"
 #include "../src/utils.hpp"
 #include "../src/variance.hpp"
-
-void test_compressed_mul(int n, BaseHash &hashes, BaseHash &large_hashes, std::string s) {
-    MatrixRXd m1;
-    MatrixRXd m2;
-    MatrixRXd compressed;
-    MatrixRXd result;
-    MatrixRXd expected;
-
-    SECTION(s) {
-        GIVEN("Two zero-matrices") {
-            m1 = MatrixRXd::Zero(n, n);
-            m2 = MatrixRXd::Zero(n, n);
-            expected = MatrixRXd::Zero(n, n);
-            compressed = compressed_product(m1, m2, hashes);
-            result = decompress_matrix(compressed, n, hashes);
-            REQUIRE(result.isApprox(expected));
-        }
-
-        GIVEN("One zero-matrix") {
-            m1 = MatrixRXd::Zero(n, n);
-            m2 = MatrixRXd::Random(n, n);
-            expected = MatrixRXd::Zero(n, n);
-            compressed = compressed_product(m1, m2, hashes);
-            result = decompress_matrix(compressed, n, hashes);
-            WHEN("zero times random") {
-                REQUIRE(result.isApprox(expected));
-            }
-
-            compressed = compressed_product(m2, m1, hashes);
-            result = decompress_matrix(compressed, n, hashes);
-            WHEN("random times zero") {
-                REQUIRE(result.isApprox(expected));
-            }
-        }
-
-        GIVEN("Two non-zero matrices") {
-            m1 = MatrixRXd::Random(n, n);
-            m2 = MatrixRXd::Random(n, n);
-
-            expected = m1 * m2;
-
-            compressed = compressed_product(m1, m2, large_hashes);
-            result = decompress_matrix(compressed, n, large_hashes);
-            WHEN("random times random, correct with prob (very very very close to) 1, (should almost never fail)") {
-                REQUIRE(result.isApprox(expected));
-            }
-        }
-    }
-}
 
 TEST_CASE("Compressed multiplication tests") {
     unsigned int seed = std::random_device{}();
@@ -72,24 +21,21 @@ TEST_CASE("Compressed multiplication tests") {
     int b = 4;
     int d = 2;
 
-    FullyRandomHash random_hash(n, b, d, rng);
-    FullyRandomHash large_random_hash(n, n * n, n * n, rng);
+    Hashes<Eigen::MatrixXi> random_hashes = fully_random_constructor(n, b, d, rng);
 
-    test_compressed_mul(n, random_hash, large_random_hash, "Fully random hash");
+    compressed_mul_tests(n, b, d, "Fully random hash", fully_random_hash(), random_hashes);
 
-    MultiplyShiftHash shift_hash(b, d, rng);
-    MultiplyShiftHash large_shift_hash(n * n, n * n, rng);
+    Hashes<MatrixXui> shift_hashes = multiply_shift_constructor(d, rng);
 
-    test_compressed_mul(n, shift_hash, large_shift_hash, "Multiply-shift hash");
+    compressed_mul_tests(n, b, d, "Multiply-shift hash", multiply_shift_hash(), shift_hashes, b);
 
-    TabulationHash tabulation_hash(32, 32, 8, b, d, rng);
-    TabulationHash large_tabulation_hash(32, 32, 8, n * n, n * n, rng);
+    Hashes<std::vector<MatrixXui>> tabulation_hashes = tabulation_constructor(32, 32, 8, d, rng);
 
-    test_compressed_mul(n, tabulation_hash, large_tabulation_hash, "Tabulation hash");
+    compressed_mul_tests(n, b, d, "Tabulation hash", tabulation_hash(), tabulation_hashes, b, 8, 4);
 }
 
 TEST_CASE("Checking the variance bounds of the whole algorithm") {
-    uint64_t N_SAMPLES = 500000;
+    int N_SAMPLES = 2000000;
 
     int n = 6, b = 4, d = 1;
 
@@ -99,27 +45,26 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
 
     MatrixRXd m1;
     MatrixRXd m2;
-    HashInfo hash_info;
 
     GIVEN("Two uniformly distributed matrices") {
         m1 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
-            hash_info = {"FullyRandomHash", rng, b, d, n, 0, 0, 0};
-            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            std::tuple<int, int, int, std::mt19937_64> cargs = std::make_tuple(n, b, d, rng);
+            bool bound_hold = test_variance<Eigen::MatrixXi>(m1, m2, N_SAMPLES, b, d, fully_random_constructor, fully_random_hash(), cargs);
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
         SECTION("Multiply-Shift hash") {
-            hash_info = {"MultiplyShiftHash", rng, b, d, 0, 0, 0, 0};
-            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            std::tuple<int, std::mt19937_64> cargs = std::make_tuple(d, rng);
+            bool bound_hold = test_variance<MatrixXui>(m1, m2, N_SAMPLES, b, d, multiply_shift_constructor, multiply_shift_hash(), cargs, d);
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
         SECTION("Tabulation hash") {
             int p = 32, q = 32, r = 8;
-            hash_info = {"TabulationHash", rng, b, d, 0, p, q, r};
-            bool bound_hold = test_variance(m1, m2, hash_info, N_SAMPLES);
+            std::tuple<int, int, int, int, std::mt19937_64> cargs = std::make_tuple(p, q, r, d, rng);
+            bool bound_hold = test_variance<std::vector<MatrixXui>>(m1, m2, N_SAMPLES, b, d, tabulation_constructor, tabulation_hash(), cargs, b, r, ceil(p / r));
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
@@ -137,9 +82,8 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
 }
 
 TEST_CASE("Compress") {
-    
     unsigned int seed = std::random_device{}();
-    std::mt19937_64 rng(seed); 
+    std::mt19937_64 rng(seed);
 
     int n = 60;
     int b = 20;
@@ -150,24 +94,24 @@ TEST_CASE("Compress") {
     MatrixRXd result;
     MatrixRXd expected;
 
-    FullyRandomHash hashes(n, b, d, rng);
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
 
     SECTION("Compressing two zero matrices") {
-        m1 = MatrixRXd::Zero(n,n);
-        m2 = MatrixRXd::Zero(n,n);
-        expected = MatrixRXd::Zero(d,b);
+        m1 = MatrixRXd::Zero(n, n);
+        m2 = MatrixRXd::Zero(n, n);
+        expected = MatrixRXd::Zero(d, b);
 
-        result = compressed_product(m1, m2, hashes);
+        result = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
 
         REQUIRE(result.isApprox(expected));
     }
 
     SECTION("Compressing one zero matrix") {
-        m1 = MatrixRXd::Zero(n,n);
-        m2 = MatrixRXd::Random(n,n);
-        expected = MatrixRXd::Zero(d,b);
+        m1 = MatrixRXd::Zero(n, n);
+        m2 = MatrixRXd::Random(n, n);
+        expected = MatrixRXd::Zero(d, b);
 
-        result = compressed_product(m1, m2, hashes);
+        result = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
 
         REQUIRE(result.isApprox(expected));
     }
@@ -175,7 +119,7 @@ TEST_CASE("Compress") {
 
 TEST_CASE("Decompress") {
     unsigned int seed = std::random_device{}();
-    std::mt19937_64 rng(seed); 
+    std::mt19937_64 rng(seed);
 
     int n = 60;
     int b = 20;
@@ -186,12 +130,12 @@ TEST_CASE("Decompress") {
     MatrixRXd result;
     MatrixRXd expected;
 
-    FullyRandomHash hashes(n, b, d, rng);
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
 
     GIVEN("A matrix with no zero-elements") {
-        compressed = MatrixRXd::Random(n, n); // make sure that no zero elements are present
+        compressed = MatrixRXd::Random(n, n);  // make sure that no zero elements are present
         THEN("No zero-elements are present in the output") {
-            result = decompress_matrix(compressed, n, hashes);
+            result = decompress_matrix(compressed, n, b, d, fully_random_hash(), hashes);
             REQUIRE(!(result.array() == 0.0).any());
         }
     }
@@ -211,14 +155,19 @@ TEST_CASE("Parallel") {
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
 
-    FullyRandomHash hashes(n, b, d, rng);
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
+    FullyRandomHash hashes2(n, b, d, rng);
+    hashes2.map[0] = hashes.h1;
+    hashes2.map[1] = hashes.h2;
+    hashes2.map[2] = hashes.s1;
+    hashes2.map[3] = hashes.s2;
 
     SECTION("Parallel compress gives same as sequential compress") {
         m1 = MatrixRXd::Random(n, n);
         m2 = MatrixRXd::Random(n, n);
 
-        expected = compressed_product(m1, m2, hashes);
-        result = compressed_product_par(m1, m2, hashes);
+        expected = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
+        result = compressed_product_par(m1, m2, b, d, fully_random_hash(), hashes);
 
         REQUIRE(result.isApprox(expected));
     }
@@ -227,19 +176,23 @@ TEST_CASE("Parallel") {
         m1 = MatrixRXd::Random(n, n);
         m2 = MatrixRXd::Random(n, n);
 
-        compressed = compressed_product(m1, m2, hashes);
-        expected = decompress_matrix(compressed, n, hashes);
-        result = decompress_matrix_par(compressed, n, hashes);
+        compressed = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
+        expected = decompress_matrix(compressed, n, b, d, fully_random_hash(), hashes);
+        result = decompress_matrix_par(compressed, n, b, d, fully_random_hash(), hashes);
 
         REQUIRE(result.isApprox(expected));
     }
 }
 
 TEST_CASE("Benchmarks", "[!benchmark]") {
-
-    int n = 4000;
-    int b = 4000;
+    int n = 1000;
+    int b = 1000;
     int d = 4;
+
+    std::cout << "----- Settings -----" << std::endl;
+    std::cout << "n = " << n << std::endl;
+    std::cout << "b = " << b << std::endl;
+    std::cout << "d = " << d << std::endl;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
@@ -252,63 +205,47 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     MatrixRXd m1 = sparse_matrix_generator(n, 0.001, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, 0.001, rng);
 
-    FullyRandomHash hashes(n, b, d, rng);
-    // MultiplyShiftHash hashes(b,d,rng);
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
+    // Hashes<MatrixXui> hashes1 = multiply_shift_constructor(d, rng);
+
 
     BENCHMARK("Eigen") {
         result1 = m1 * m2;
     };
 
     BENCHMARK("Parallel Compress") {
-        compressed2 = compressed_product_par(m1, m2, hashes);
+        compressed2 = compressed_product_par(m1, m2, b, d, fully_random_hash(), hashes);
     };
 
     BENCHMARK("Parallel Decompress") {
-        result2 = decompress_matrix_par(compressed2, n, hashes);
+        result2 = decompress_matrix_par(compressed2, n, b, d, fully_random_hash(), hashes);
     };
 
     // BENCHMARK("Sequential Compress") {
-    //     compressed1 = compressed_product(m1, m2, hashes);
+    //     compressed1 = compressed_product(m1, m2, b, d, fully_random_hash(), hashes1);
     // };
     // BENCHMARK("Sequential Decompress") {
-    //     result1 = decompress_matrix(compressed1, n, hashes);
+    //     result1 = decompress_matrix(compressed1, n, b, d, fully_random_hash(), hashes1);
     // };
 
-    BENCHMARK("FullyRandomHash constructor") {
-        FullyRandomHash hashes(n, b, d, rng);
-    };
+    // Eigen::VectorXd vec = Eigen::VectorXd::Random(d);
 
-    BENCHMARK("MultiplyShiftHash constructor") {
-        MultiplyShiftHash hashes(b, d, rng);
-    };
+    // double val;
+    // double median1;
+    // double median2;
+    // BENCHMARK("find_median") {
+    //     #pragma omp parallel for
+    //     for (int i = 0; i < n*n; i++) {
+    //         std::nth_element(xt, xt + d / 2, xt + d);
+    //         median1 = xt[d / 2];
 
-    BENCHMARK("TabulationHash constructor") {
-        int p = 32, q = 32, r = 8;
-        TabulationHash hashes(p, q, r, b, d, rng);
-    };
-
-    Eigen::VectorXd vec = Eigen::VectorXd::Random(d);
-    double val;
-    BENCHMARK("find_median") {
-        #pragma omp parallel for
-        for (int i = 0; i < n*n; i++) {
-            val = find_median(vec);
-        }
-    };
-
-    // This is half of our bloody runtime innit. now was
-    BENCHMARK("Access one hash function, the number of times it is accessed in compressed_product") {
-        int temp;
-#pragma omp parallel for
-        for (int t = 0; t < d; t++) {
-            for (int k = 0; k < n; k++) {
-                for (int i = 0; i < n; i++) {
-                    temp = hashes.hash(0, t, i);
-                }
-            }
-        }
-    };
-
-    SECTION("") {
-    }
+    //         if (d % 2 != 0) {
+    //             c(i, j) = median1;
+    //         } else {
+    //             std::nth_element(xt.begin(), xt.begin() + (d - 1) / 2, xt.end());
+    //             median2 = xt[d / 2 - 1];
+    //             val = (median1 + median2) / 2.0;
+    //         }
+    //     }
+    // };
 }

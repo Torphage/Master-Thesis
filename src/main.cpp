@@ -23,15 +23,16 @@ int main() {
 
     // MatrixRXd m1 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
     // MatrixRXd m2 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
-
-    FullyRandomHash hashes(n, b, d, rng);
+    
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
+    // FullyRandomHash hashes2(n, b, d, rng);
     // MultiplyShiftHash hashes(b, d, rng);
     // int p = 32, q = 32, r = 8;
     // TabulationHash hashes(p, q, r, b ,d, rng);
     
 
-    MatrixRXd prod = compressed_product(m1, m2, hashes);
-    MatrixRXd result = decompress_matrix(prod, n, hashes);
+    MatrixRXd prod = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
+    MatrixRXd result = decompress_matrix(prod, n, b, d, fully_random_hash(), hashes);
 
     MatrixRXd real_product = m1*m2;
 

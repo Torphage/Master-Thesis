@@ -9,21 +9,23 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wunused-parameter")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set(BLAS_PROVIDED ON)
 
 option(USE_ACCELERATE "USE_ACCELERATE" OFF)
-option(USE_MKL "USE_ACCELERATE" OFF)
-option(USE_AOCL "USE_ACCELERATE" OFF)
-option(USE_OPENBLAS "USE_ACCELERATE" OFF)
+option(USE_MKL "USE_MKL" OFF)
+option(USE_AOCL "USE_AOCL" OFF)
+option(USE_OPENBLAS "USE_OPENBLAS" OFF)
 
 if(USE_ACCELERATE)
+  message("Apple Accelerate selected")
   set(BLA_VENDER Apple)
 elseif(USE_MKL)
-  set(BLA_VENDER Intel10_64lp_seq)
+  set(BLA_VENDER Intel10_64lp_seq) # Flag EIGEN_USE_MKL_ALL ?
 elseif(USE_AOCL)
   set(BLA_VENDER AOCL)
 elseif(USE_OPENBLAS)
@@ -52,7 +54,7 @@ find_package(OpenMP REQUIRED)
 
 
 # Main program
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp)
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp src/*.tpp)
 
 add_executable(app ${SOURCES})
 
@@ -73,7 +75,7 @@ endif(BLAS_FOUND)
 
 
 # Removes main.cpp from the test executable
-file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp src/*.cpp src/*.hpp)
+file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp test/*.tpp src/*.cpp src/*.hpp src/*.tpp)
 FOREACH(item ${TESTS})
   IF(${item} MATCHES "src/main.cpp")
     LIST(REMOVE_ITEM TESTS ${item})

@@ -32,6 +32,10 @@ all:
 
 # Specific tests
 
+bench:
+	$(MAKE) build
+	./build/tests benchmarks
+
 test:
 	$(MAKE) build
 	./build/tests $(p)
