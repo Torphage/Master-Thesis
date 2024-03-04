@@ -2,14 +2,16 @@
 #ifndef COMPRESSED_MUL_HPP
 #define COMPRESSED_MUL_HPP
 
+#include <complex>
 #include <fftw3.h>
 #include <Eigen/Dense>
-#include <complex>
+#include <iostream>
 
 #include "hashing.hpp"
 #include "utils.hpp"
+#include "fft.hpp"
 
-MatrixRXd compressed_ifft(const MatrixRXcd& p, int b, int d);
+MatrixRXd compressed_ifft(MatrixRXcd& p, int b, int d);
 
 MatrixRXd compressed_ifft_par(MatrixRXcd& p, int b, int d);
 
@@ -18,18 +20,17 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
     int n = m1.rows();
 
     MatrixRXcd p = MatrixRXcd::Zero(d, b);
-    MatrixRXd p_real = MatrixRXd::Zero(d, b);
 
     int t, k, i;
-    Complex d1, d2;
 
-    Eigen::VectorXd pa = Eigen::VectorXd::Zero(b);
-    Eigen::VectorXd pb = Eigen::VectorXd::Zero(b);
+    MatrixRXd pa = MatrixRXd::Zero(1, b);
+    MatrixRXd pb = MatrixRXd::Zero(1, b);
 
-    fftw_complex* out1 = fftw_alloc_complex(b / 2 + 1);
-    fftw_complex* out2 = fftw_alloc_complex(b / 2 + 1);
+    Complex* out1 = new Complex[b / 2 + 1];
+    Complex* out2 = new Complex[b / 2 + 1];
 
-    fftw_plan plan = fftw_plan_dft_r2c_1d(b, pa.data(), out1, FFTW_ESTIMATE);
+    fft_struct fft1 = init_fft(b, pa.data(), out1);
+    fft_struct fft2 = init_fft(b, pb.data(), out2);
 
     for (t = 0; t < d; t++) {
         for (k = 0; k < n; k++) {
@@ -43,23 +44,19 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
             }
 
 
-            fftw_execute_dft_r2c(plan, pa.data(), out1);
-            fftw_execute_dft_r2c(plan, pb.data(), out2);
+            fft(fft1, 0, 0);
+            fft(fft2, 0, 0);
 
             for (i = 0; i < b / 2 + 1; i++) {
-                d1 = Complex(out1[i][0], out1[i][1]);
-                d2 = Complex(out2[i][0], out2[i][1]);
-                p(t, i) += d1 * d2;
+                p(t, i) += out1[i] * out2[i];
             }
         }
     }
 
-    fftw_free(out1);
-    fftw_free(out2);
+    clean_fft(fft1);
+    clean_fft(fft2);
 
-    fftw_destroy_plan(plan);
-
-    p_real = compressed_ifft(p, b, d);
+    MatrixRXd p_real = compressed_ifft(p, b, d);
 
     return p_real;
 }
@@ -73,16 +70,16 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
 
-    fftw_complex* out1 = fftw_alloc_complex(d * (b / 2 + 1));
-    fftw_complex* out2 = fftw_alloc_complex(d * (b / 2 + 1));
+    Complex* out1 = new Complex[d * (b / 2 + 1)];
+    Complex* out2 = new Complex[d * (b / 2 + 1)];
 
-    fftw_plan plan = fftw_plan_dft_r2c_1d(b, pas.row(0).data(), out1, FFTW_MEASURE);
+    fft_struct fft1 = init_fft(b, pas.data(), out1);
+    fft_struct fft2 = init_fft(b, pbs.data(), out2);
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
-        Complex d1;
-        Complex d2;
-        int offset = t * (b / 2 + 1);
+        int in_offset = t * b;
+        int out_offset = t * (b / 2 + 1);
         for (int k = 0; k < n; k++) {
             pas.row(t).setZero();
             pbs.row(t).setZero();
@@ -92,21 +89,17 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
                 pbs(t, hash(hashes.h2, t, i, 0, args...)) += hash(hashes.s2, t, i, 1, args...) * m2(k, i);
             }
 
-            fftw_execute_dft_r2c(plan, pas.row(t).data(), out1 + offset);
-            fftw_execute_dft_r2c(plan, pbs.row(t).data(), out2 + offset);
+            fft(fft1, in_offset, out_offset);
+            fft(fft2, in_offset, out_offset);
 
             for (int i = 0; i < b / 2 + 1; i++) {
-                d1 = Complex(out1[i + offset][0], out1[i + offset][1]);
-                d2 = Complex(out2[i + offset][0], out2[i + offset][1]);
-                p(t, i) += d1 * d2;
+                p(t, i) += out1[i + out_offset] * out2[i + out_offset];
             }
         }
     }
 
-    fftw_free(out1);
-    fftw_free(out2);
-
-    fftw_destroy_plan(plan);
+    clean_fft(fft1);
+    clean_fft(fft2);
 
     MatrixRXd p_real = compressed_ifft_par(p, b, d);
 
