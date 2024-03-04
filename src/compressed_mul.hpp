@@ -3,7 +3,6 @@
 #define COMPRESSED_MUL_HPP
 
 #include <fftw3.h>
-
 #include <Eigen/Dense>
 #include <complex>
 
@@ -27,15 +26,14 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
     Eigen::VectorXd pa = Eigen::VectorXd::Zero(b);
     Eigen::VectorXd pb = Eigen::VectorXd::Zero(b);
 
-    // 🅱️alloc
     fftw_complex* out1 = fftw_alloc_complex(b / 2 + 1);
     fftw_complex* out2 = fftw_alloc_complex(b / 2 + 1);
 
-    fftw_plan plan1 = fftw_plan_dft_r2c_1d(b, pa.data(), out1, FFTW_ESTIMATE);
-    fftw_plan plan2 = fftw_plan_dft_r2c_1d(b, pb.data(), out2, FFTW_ESTIMATE);
+    fftw_plan plan = fftw_plan_dft_r2c_1d(b, pa.data(), out1, FFTW_ESTIMATE);
 
     for (t = 0; t < d; t++) {
         for (k = 0; k < n; k++) {
+
             pa.setZero();
             pb.setZero();
 
@@ -44,8 +42,9 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
                 pb(hash(hashes.h2, t, i, 0, args...)) += hash(hashes.s2, t, i, 1, args...) * m2(k, i);
             }
 
-            fftw_execute(plan1);
-            fftw_execute(plan2);
+
+            fftw_execute_dft_r2c(plan, pa.data(), out1);
+            fftw_execute_dft_r2c(plan, pb.data(), out2);
 
             for (i = 0; i < b / 2 + 1; i++) {
                 d1 = Complex(out1[i][0], out1[i][1]);
@@ -58,8 +57,7 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
     fftw_free(out1);
     fftw_free(out2);
 
-    fftw_destroy_plan(plan1);
-    fftw_destroy_plan(plan2);
+    fftw_destroy_plan(plan);
 
     p_real = compressed_ifft(p, b, d);
 
@@ -72,23 +70,13 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
 
     MatrixRXcd p = MatrixRXcd::Zero(d, b);
 
-    // 🅱️alloc
-
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
 
     fftw_complex* out1 = fftw_alloc_complex(d * (b / 2 + 1));
     fftw_complex* out2 = fftw_alloc_complex(d * (b / 2 + 1));
 
-    std::vector<fftw_plan> plans1;
-    std::vector<fftw_plan> plans2;
-
-    int offset;
-    for (int t = 0; t < d; t++) {
-        offset = t * (b / 2 + 1);
-        plans1.push_back(fftw_plan_dft_r2c_1d(b, pas.row(t).data(), out1 + offset, FFTW_ESTIMATE));
-        plans2.push_back(fftw_plan_dft_r2c_1d(b, pbs.row(t).data(), out2 + offset, FFTW_ESTIMATE));
-    }
+    fftw_plan plan = fftw_plan_dft_r2c_1d(b, pas.row(0).data(), out1, FFTW_MEASURE);
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
@@ -104,8 +92,8 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
                 pbs(t, hash(hashes.h2, t, i, 0, args...)) += hash(hashes.s2, t, i, 1, args...) * m2(k, i);
             }
 
-            fftw_execute(plans1[t]);
-            fftw_execute(plans2[t]);
+            fftw_execute_dft_r2c(plan, pas.row(t).data(), out1 + offset);
+            fftw_execute_dft_r2c(plan, pbs.row(t).data(), out2 + offset);
 
             for (int i = 0; i < b / 2 + 1; i++) {
                 d1 = Complex(out1[i + offset][0], out1[i + offset][1]);
@@ -118,10 +106,7 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
     fftw_free(out1);
     fftw_free(out2);
 
-    for (int t = 0; t < d; t++) {
-        fftw_destroy_plan(plans1[t]);
-        fftw_destroy_plan(plans2[t]);
-    }
+    fftw_destroy_plan(plan);
 
     MatrixRXd p_real = compressed_ifft_par(p, b, d);
 
@@ -129,22 +114,25 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
 }
 
 
-// MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, BaseHash& hashes);
-
-// /**
-//  * @brief
-//  *
-//  * @param p
-//  * @param n
-//  * @param hashes
-//  * @return MatrixRXd
-//  */
-// MatrixRXd decompress_matrix(MatrixRXd p, int n, BaseHash &hashes);
-
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @tparam H 
+ * @tparam Args 
+ * @param p 
+ * @param n 
+ * @param b 
+ * @param d 
+ * @param hash 
+ * @param hashes 
+ * @param args 
+ * @return MatrixRXd 
+ */
 template <typename T, typename H, typename... Args>
 MatrixRXd decompress_matrix(const MatrixRXd& p, int n, int b, int d, T hash, Hashes<H>& hashes, Args... args) {
-    std::vector<double> xt(d);
     MatrixRXd c = MatrixRXd::Zero(n, n);
+    std::vector<double> xt(d);
 
     double median1;
     double median2;
