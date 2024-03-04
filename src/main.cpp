@@ -18,17 +18,16 @@ int main() {
     std::mt19937_64 rng2(2);
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
 
-    MatrixRXd m1 = sparse_matrix_generator(n, 0.1, rng2);
-    MatrixRXd m2 = sparse_matrix_generator(n, 0.1, rng2);
+    MatrixRXd m1 = sparse_matrix_generator(n, 0.1, rng);
+    MatrixRXd m2 = sparse_matrix_generator(n, 0.1, rng);
 
     // MatrixRXd m1 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
     // MatrixRXd m2 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
     
     Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
-    // FullyRandomHash hashes2(n, b, d, rng);
-    // MultiplyShiftHash hashes(b, d, rng);
+    // Hashes<MatrixXui> hashes = multiply_shift_constructor(d, rng);
     // int p = 32, q = 32, r = 8;
-    // TabulationHash hashes(p, q, r, b ,d, rng);
+    // Hashes<std::vector<MatrixXui>> hashes = tabulation_constructor(p, q, r, d, rng);
     
 
     MatrixRXd prod = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);

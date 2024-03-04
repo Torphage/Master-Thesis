@@ -34,7 +34,7 @@ all:
 
 bench:
 	$(MAKE) build
-	./build/tests benchmarks
+	./build/tests --benchmark-samples=100 benchmarks
 
 test:
 	$(MAKE) build

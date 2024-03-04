@@ -4,6 +4,8 @@
 
 #include <Eigen/Dense>
 #include <random>
+#include <chrono>
+#include <iostream>
 
 typedef std::complex<double> Complex;
 
@@ -48,5 +50,15 @@ double sum_matrix(MatrixRXd &matrix);
 double find_median(Eigen::VectorXd vec);
 
 void progress_bar(double percentage);
+
+template <
+    class result_t   = std::chrono::milliseconds,
+    class clock_t    = std::chrono::steady_clock,
+    class duration_t = std::chrono::milliseconds
+>
+auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+{
+    return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+}
 
 #endif

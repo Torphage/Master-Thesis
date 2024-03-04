@@ -35,9 +35,9 @@ TEST_CASE("Compressed multiplication tests") {
 }
 
 TEST_CASE("Checking the variance bounds of the whole algorithm") {
-    int N_SAMPLES = 2000000;
+    int N_SAMPLES = 1000000;
 
-    int n = 6, b = 4, d = 1;
+    int n = 5, b = 1, d = 1;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
@@ -51,20 +51,26 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
         m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
             std::tuple<int, int, int, std::mt19937_64> cargs = std::make_tuple(n, b, d, rng);
+            auto start = std::chrono::steady_clock::now();
             bool bound_hold = test_variance<Eigen::MatrixXi>(m1, m2, N_SAMPLES, b, d, fully_random_constructor, fully_random_hash(), cargs);
+            std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
         SECTION("Multiply-Shift hash") {
             std::tuple<int, std::mt19937_64> cargs = std::make_tuple(d, rng);
+            auto start = std::chrono::steady_clock::now();
             bool bound_hold = test_variance<MatrixXui>(m1, m2, N_SAMPLES, b, d, multiply_shift_constructor, multiply_shift_hash(), cargs, d);
+            std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
         SECTION("Tabulation hash") {
             int p = 32, q = 32, r = 8;
             std::tuple<int, int, int, int, std::mt19937_64> cargs = std::make_tuple(p, q, r, d, rng);
+            auto start = std::chrono::steady_clock::now();
             bool bound_hold = test_variance<std::vector<MatrixXui>>(m1, m2, N_SAMPLES, b, d, tabulation_constructor, tabulation_hash(), cargs, b, r, ceil(p / r));
+            std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
@@ -185,9 +191,9 @@ TEST_CASE("Parallel") {
 }
 
 TEST_CASE("Benchmarks", "[!benchmark]") {
-    int n = 1000;
-    int b = 1000;
-    int d = 4;
+    int n = 2000;
+    int b = 2000;
+    int d = 3;
 
     std::cout << "----- Settings -----" << std::endl;
     std::cout << "n = " << n << std::endl;
@@ -205,9 +211,12 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     MatrixRXd m1 = sparse_matrix_generator(n, 0.001, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, 0.001, rng);
 
-    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
-    // Hashes<MatrixXui> hashes1 = multiply_shift_constructor(d, rng);
+    int val;
 
+    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
+    // Hashes<MatrixXui> hashes = multiply_shift_constructor(d, rng);
+    // int p = 32, q = 32, r = 8, t = ceil(p/r);
+    // Hashes<std::vector<MatrixXui>> hashes = tabulation_constructor(p, q, r, d, rng);
 
     BENCHMARK("Eigen") {
         result1 = m1 * m2;
@@ -227,6 +236,7 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     // BENCHMARK("Sequential Decompress") {
     //     result1 = decompress_matrix(compressed1, n, b, d, fully_random_hash(), hashes1);
     // };
+
 
     // Eigen::VectorXd vec = Eigen::VectorXd::Random(d);
 

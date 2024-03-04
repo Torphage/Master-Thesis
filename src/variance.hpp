@@ -10,24 +10,10 @@
 #include "hashing.hpp"
 #include "utils.hpp"
 
-struct HashInfo {
-    std::string id;
-    std::mt19937_64 rng;
-    int b;
-    int d;
-    int n;
-    int p;
-    int q;
-    int r;
-};
 
 double variance(Eigen::VectorXd &vec);
 
 MatrixRXd variance3d(std::vector<MatrixRXd> &mat);
-
-// A template to hold a parameter pack
-template < typename... >
-struct Typelist {};
 
 template <typename H, typename C, typename T, typename... CArgs, typename... Args>
 bool test_variance(MatrixRXd m1, MatrixRXd m2, int num_samples, int b, int d, C constructor, T hash, std::tuple<CArgs...> cargs, Args... args) {    
