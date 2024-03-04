@@ -90,7 +90,7 @@ struct Hashes {
 
 Hashes<Eigen::MatrixXi> fully_random_constructor(int n, int b, int d, std::mt19937_64 &rng);
 
-struct fully_random_hash {  
+struct fully_random_hash {
     int operator()(Eigen::MatrixXi &map, int index, uint32_t x, int sign) {
         return map(index, x);
     }
@@ -121,13 +121,11 @@ Hashes<std::vector<MatrixXui>> tabulation_constructor(int p, int q, int r, int d
 struct tabulation_hash {
     int operator()(std::vector<MatrixXui> &map, int index, uint32_t x, int sign, int b, int r, int t) {
         uint32_t res = 0;
-        MatrixXui tab_matrix = map[index];
+        MatrixXui &tab_matrix = map[index];
         int mask = (1 << r) - 1;
 
         for (int i = 0; i < t; i++) {
-            uint32_t shift = x >> r * i;
-            uint32_t masked = shift & mask;
-            res ^= tab_matrix(i, masked);
+            res ^= tab_matrix(i, (x >> r * i) & mask);
         }
 
         if (sign) {

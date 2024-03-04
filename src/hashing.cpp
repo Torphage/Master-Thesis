@@ -126,13 +126,7 @@ Hashes<Eigen::MatrixXi> fully_random_constructor(int n, int b, int d, std::mt199
     }
     
     return {h1, h2, s1, s2};
-} 
-
-
-
-// int fully_random_hash(Eigen::MatrixXi& map, int index, uint32_t x, int sign) {
-//     return map(index, x);
-// }
+}
 
 Hashes<MatrixXui> multiply_shift_constructor(int d, std::mt19937_64 &rng) {
     MatrixXui h1(d, 2), h2(d, 2), s1(d, 2), s2(d, 2);
@@ -150,7 +144,7 @@ Hashes<MatrixXui> multiply_shift_constructor(int d, std::mt19937_64 &rng) {
 }
 
 Hashes<std::vector<MatrixXui>> tabulation_constructor(int p, int q, int r, int d, std::mt19937_64 &rng) {
-    int t = ceil(p / r);
+    const int t = ceil(p / r);
 
     std::uniform_int_distribution<int> uni(0, pow(2, q));
     int size = pow(2, r);
