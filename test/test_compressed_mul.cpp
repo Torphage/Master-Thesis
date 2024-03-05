@@ -162,11 +162,6 @@ TEST_CASE("Parallel") {
     std::mt19937_64 rng(seed);
 
     Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
-    FullyRandomHash hashes2(n, b, d, rng);
-    hashes2.map[0] = hashes.h1;
-    hashes2.map[1] = hashes.h2;
-    hashes2.map[2] = hashes.s1;
-    hashes2.map[3] = hashes.s2;
 
     SECTION("Parallel compress gives same as sequential compress") {
         m1 = MatrixRXd::Random(n, n);
@@ -211,7 +206,6 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     MatrixRXd m1 = sparse_matrix_generator(n, 0.001, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, 0.001, rng);
 
-    int val;
 
     Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
     // Hashes<MatrixXui> hashes = multiply_shift_constructor(d, rng);

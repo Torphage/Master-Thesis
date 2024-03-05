@@ -1,15 +1,14 @@
-#include <Eigen/Dense>
-#include <random>
-#include <cmath>
-#include <iostream>
-
 #include "utils.hpp"
 
-
+#include <Eigen/Dense>
+#include <cmath>
+#include <iostream>
+#include <random>
 
 MatrixRXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
-    MatrixRXd m = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});;
+    MatrixRXd m = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
+    ;
 
     int num_zeros = static_cast<int>(n * n * (1 - density));
     std::vector<int> indices(n * n);
@@ -29,9 +28,9 @@ MatrixRXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
 void round_matrix(MatrixRXd &matrix, int n) {
     for (int i = 0; i < matrix.rows(); i++) {
         for (int j = 0; j < matrix.cols(); j++) {
-            if (abs(matrix(i,j)) < pow(0.1, n)) {
+            if (abs(matrix(i, j)) < pow(0.1, n)) {
                 matrix(i, j) = std::round(matrix(i, j) * n * 10.0) / (n * 10.0);
-            } 
+            }
         }
     }
 }
@@ -46,36 +45,19 @@ double sum_matrix(MatrixRXd &matrix) {
     return res;
 }
 
-double find_median(Eigen::VectorXd vec) {
-    int n = vec.size();
-    int targetIndex = n / 2;
-    double *data = vec.data();
-    
-    std::nth_element(data, data + n / 2, data + n); 
-    double median1 = vec(targetIndex);
-
-    if (n % 2 != 0) { 
-        return median1; 
-    } 
-
-    std::nth_element(data, data + (n - 1) / 2, data + n); 
-    double median2 = vec(targetIndex - 1);
-  
-    return (median1 + median2) / 2.0; 
-} 
-
-
 void progress_bar(double percentage) {
     int barWidth = 70;
 
     std::cout << "[";
     int pos = barWidth * percentage;
     for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) std::cout << "=";
-        else if (i == pos) std::cout << ">";
-        else std::cout << " ";
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
     }
     std::cout << "] " << int(percentage * 100.0) << " %\r";
     std::cout.flush();
 }
-

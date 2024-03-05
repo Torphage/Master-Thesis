@@ -1,12 +1,15 @@
 #include "fft.hpp"
 
 #ifdef USE_MKL
+
+#include "mkl.h"
+
 fft_struct init_fft_mkl(void) {
-    return fft_struct();
+    return {};
 }
 
-fft_struct init_ifft_mkl(void) {
-    return fft_struct();
+ifft_struct init_ifft_mkl(void) {
+    return {};
 }
 
 void fft_mkl(fft_struct info, int in_offset, int out_offset) {
@@ -29,8 +32,8 @@ void clean_ifft_mkl(ifft_struct info) {
 
 #include <fftw3.h>
 
-fft_struct init_fft_fftw(int b, double* in, Complex *out) {
-    fftw_plan plan = fftw_plan_dft_r2c_1d(b, in, reinterpret_cast<fftw_complex *>(out), FFTW_MEASURE);
+fft_struct init_fft_fftw(int b, double* in, Complex* out) {
+    fftw_plan plan = fftw_plan_dft_r2c_1d(b, in, reinterpret_cast<fftw_complex*>(out), FFTW_MEASURE);
 
     return {
         in,
@@ -41,16 +44,14 @@ fft_struct init_fft_fftw(int b, double* in, Complex *out) {
 
 ifft_struct init_ifft_fftw(int b, Complex* in, double* out) {
     fftw_complex* in_size = fftw_alloc_complex(b);
-    // double* out = fftw_alloc_real(2 * (b / 2 + 1));
     fftw_plan plan = fftw_plan_dft_c2r_1d(b, in_size, out, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
 
     return {
         reinterpret_cast<fftw_complex*>(in),
-        out, 
-        plan
+        out,
+        plan,
     };
 }
-
 
 void fft_fftw(fft_struct info, int in_offset, int out_offset) {
     return fftw_execute_dft_r2c(info.plan, info.in + in_offset, info.out + out_offset);
@@ -70,7 +71,7 @@ void clean_ifft_fftw(ifft_struct info) {
 }
 #endif
 
-fft_struct init_fft(int b, double* in, Complex *out) {
+fft_struct init_fft(int b, double* in, Complex* out) {
 #ifdef USE_MKL
     return init_fft_mkl();
 #else

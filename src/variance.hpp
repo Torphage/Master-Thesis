@@ -2,21 +2,33 @@
 #ifndef VARIANCE_HPP
 #define VARIANCE_HPP
 
-#include <vector>
-#include <random>
 #include <Eigen/Dense>
 #include <iostream>
+#include <random>
+#include <vector>
 
 #include "hashing.hpp"
 #include "utils.hpp"
 
-
+/**
+ * @brief Calculates the variance over a vector
+ * 
+ * @param vec is the vector that the variance will be calculated over
+ * @return double The variance
+ */
 double variance(Eigen::VectorXd &vec);
 
+/**
+ * @brief Calculates the variance from a 3d matrix (tensor) projected onto a 2d matrix
+ * 
+ * @param mat The list of matrices to
+ * @return MatrixRXd The matrix where each element is the variance of 
+ *         that position (across the vector) 
+ */
 MatrixRXd variance3d(std::vector<MatrixRXd> &mat);
 
 template <typename H, typename C, typename T, typename... CArgs, typename... Args>
-bool test_variance(MatrixRXd m1, MatrixRXd m2, int num_samples, int b, int d, C constructor, T hash, std::tuple<CArgs...> cargs, Args... args) {    
+bool test_variance(MatrixRXd m1, MatrixRXd m2, int num_samples, int b, int d, C constructor, T hash, std::tuple<CArgs...> cargs, Args... args) {
     int n = m1.rows();
     MatrixRXd compressed;
     MatrixRXd decompressed;
@@ -37,10 +49,9 @@ bool test_variance(MatrixRXd m1, MatrixRXd m2, int num_samples, int b, int d, C 
     }
     MatrixRXd result = variance3d(vec);
 
-    double bound =  (pow((m1*m2).norm(), 2)) / b;
+    double bound = (pow((m1 * m2).norm(), 2)) / b;
 
     return (result.array() < bound).all();
 }
-
 
 #endif
