@@ -6,11 +6,20 @@
 
 #ifdef USE_MKL
 
-struct fft_struct {};
-struct ifft_struct {};
+struct fft_struct {
+    double* in;
+    Complex* out;
+    DFTI_DESCRIPTOR_HANDLE descriptor;
+};
 
-fft_struct init_fft_mkl();
-ifft_struct init_ifft_mkl();
+struct ifft_struct {
+    Complex* in;
+    double* out;
+    DFTI_DESCRIPTOR_HANDLE descriptor;
+};
+
+fft_struct init_fft_mkl(int b, double* in, Complex* out);
+ifft_struct init_ifft_mkl(int b, Complex* in, double* out);
 void fft_mkl(fft_struct info, int in_offset, int out_offset);
 void ifft_mkl(ifft_struct info, int in_offset, int out_offset);
 void clean_fft_mkl(fft_struct info);

@@ -2,35 +2,69 @@
 
 #ifdef USE_MKL
 
-#include "mkl.h"
+fft_struct init_fft_mkl(int b, double* in, Complex* out) { // GREEN GREEN WHAT IS YOUR PROBLEM GREEN
+    DFTI_DESCRIPTOR_HANDLE descriptor;
 
-fft_struct init_fft_mkl(void) {
-    return {};
+    bool valid = (
+        DFTI_NO_ERROR == DftiCreateDescriptor(&descriptor, DFTI_DOUBLE, DFTI_REAL, 1, b) && //Specify size and precision
+        DFTI_NO_ERROR == DftiSetValue(descriptor, DFTI_PLACEMENT, DFTI_NOT_INPLACE) && //Out of place FFT
+        // make clear that the result should be a vector of Complex:
+        DFTI_NO_ERROR == DftiSetValue(descriptor, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX) &&
+        DFTI_NO_ERROR == DftiCommitDescriptor(descriptor)); //Finalize the descriptor
+
+    if (!valid) {
+        DftiFreeDescriptor(&descriptor);
+        descriptor = nullptr;
+    }
+
+    return {
+        in,
+        out,
+        descriptor,
+    };
 }
 
-ifft_struct init_ifft_mkl(void) {
-    return {};
+ifft_struct init_ifft_mkl(int b, Complex* in, double* out) { // GREEN GREEN WHAT IS YOUR PROBLEM GREEN
+    DFTI_DESCRIPTOR_HANDLE descriptor;
+
+    bool valid = (
+        DFTI_NO_ERROR == DftiCreateDescriptor(&descriptor, DFTI_DOUBLE, DFTI_REAL, 1, b) && //Specify size and precision
+        DFTI_NO_ERROR == DftiSetValue(descriptor, DFTI_PLACEMENT, DFTI_NOT_INPLACE) && //Out of place FFT
+        // make clear that the result should be a vector of Complex:
+        DFTI_NO_ERROR == DftiSetValue(descriptor, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX) &&
+        // chosen normalization is fft(constant)[0] = constant:
+        // DFTI_NO_ERROR == DftiSetValue(descriptor, DFTI_BACKWARD_SCALE, 1. / b) &&
+        DFTI_NO_ERROR == DftiCommitDescriptor(descriptor)); //Finalize the descriptor
+
+    if (!valid) {
+        DftiFreeDescriptor(&descriptor);
+        descriptor = nullptr;
+    }
+
+    return {
+        in,
+        out,
+        descriptor,
+    };
 }
 
 void fft_mkl(fft_struct info, int in_offset, int out_offset) {
-    return;
+    DftiComputeForward(info.descriptor, info.in + in_offset, info.out + out_offset);
 }
 
 void ifft_mkl(ifft_struct info, int in_offset, int out_offset) {
-    return;
+    DftiComputeBackward(info.descriptor, info.in + in_offset, info.out + out_offset);
 }
 
 void clean_fft_mkl(fft_struct info) {
-    return;
+    DftiFreeDescriptor(&info.descriptor);
 }
 
 void clean_ifft_mkl(ifft_struct info) {
-    return;
+    DftiFreeDescriptor(&info.descriptor);
 }
 
 #else
-
-#include <fftw3.h>
 
 fft_struct init_fft_fftw(int b, double* in, Complex* out) {
     fftw_plan plan = fftw_plan_dft_r2c_1d(b, in, reinterpret_cast<fftw_complex*>(out), FFTW_MEASURE);
@@ -73,7 +107,7 @@ void clean_ifft_fftw(ifft_struct info) {
 
 fft_struct init_fft(int b, double* in, Complex* out) {
 #ifdef USE_MKL
-    return init_fft_mkl();
+    return init_fft_mkl(b, in, out);
 #else
     return init_fft_fftw(b, in, out);
 #endif
@@ -81,7 +115,7 @@ fft_struct init_fft(int b, double* in, Complex* out) {
 
 ifft_struct init_ifft(int b, Complex* in, double* out) {
 #ifdef USE_MKL
-    return init_ifft_mkl();
+    return init_ifft_mkl(b, in, out);
 #else
     return init_ifft_fftw(b, in, out);
 #endif
