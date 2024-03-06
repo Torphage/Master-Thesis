@@ -12,7 +12,6 @@
 
 #include <Eigen/Dense>
 #include <complex>
-#include <iostream>
 
 #include "fft.hpp"
 #include "hashing.hpp"
@@ -25,7 +24,7 @@
  *
  * @tparam T The type of hash function to use
  * @tparam H The type of data type that the hash function will store its data
- * @tparam Args Let the function take an arbitrary amount of arguments
+ * @tparam Args Allows the function take an arbitrary amount of arguments
  * @param m1 is the left matrix
  * @param m2 is the right matrix
  * @param b is at most the number of non-zero elements in the output.
@@ -95,7 +94,7 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
  *
  * @tparam T The type of hash function to use
  * @tparam H The type of data type that the hash function will store its data
- * @tparam Args Let the function take an arbitrary amount of arguments
+ * @tparam Args Allows the function take an arbitrary amount of arguments
  * @param m1 is the left matrix
  * @param m2 is the right matrix
  * @param b is at most the number of non-zero elements in the output.
@@ -166,7 +165,7 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
  *
  * @tparam T The type of hash function to use
  * @tparam H The type of data type that the hash function will store its data
- * @tparam Args Let the function take an arbitrary amount of arguments
+ * @tparam Args Allows the function take an arbitrary amount of arguments
  * @param p is the compressed matrix to be decompressed
  * @param n is the size of the square matrix
  * @param b is at most the number of non-zero elements in the output.
@@ -213,7 +212,7 @@ MatrixRXd decompress_matrix(const MatrixRXd& p, int n, int b, int d, T hash, Has
  *
  * @tparam T The type of hash function to use
  * @tparam H The type of data type that the hash function will store its data
- * @tparam Args Let the function take an arbitrary amount of arguments
+ * @tparam Args Allows the function take an arbitrary amount of arguments
  * @param p is the compressed matrix to be decompressed
  * @param n is the size of the square matrix
  * @param b is at most the number of non-zero elements in the output.

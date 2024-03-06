@@ -9,12 +9,12 @@ clean:
 
 build:
 	mkdir -p build
-	cmake --build build -j 2 
+	cmake --build build -j 4
 
 rebuild:
 	$(MAKE) clean
 	cmake -D USE_$(d)=ON -S . -B ./build
-	cmake --build build -j 2
+	cmake --build build -j 4
 
 run:
 	./build/app

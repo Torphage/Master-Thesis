@@ -4,7 +4,6 @@
 
 #include <Eigen/Dense>
 #include <chrono>
-#include <iostream>
 #include <random>
 
 /**

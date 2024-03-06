@@ -5,6 +5,8 @@ DESCRIPTION "Compressed Matrix Multiplication"
 LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 17)
 
+# add_definitions(-DUSE_MKL) 
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -51,6 +53,7 @@ endif(BLAS_PROVIDED)
 # Imports libraries
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Catch2 3 REQUIRED)
+# find_package(benchmark REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
@@ -94,6 +97,7 @@ add_executable(tests ${TESTS})
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(tests PUBLIC Eigen3::Eigen)
 target_link_libraries(tests PUBLIC PkgConfig::FFTW)
+# target_link_libraries(tests PUBLIC benchmark::benchmark)
 
 if(OpenMP_FOUND)
   target_link_libraries(tests PUBLIC OpenMP::OpenMP_CXX)
