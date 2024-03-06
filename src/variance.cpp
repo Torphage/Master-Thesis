@@ -13,9 +13,9 @@
 
 double variance(Eigen::VectorXd &vec) {
     Eigen::VectorXd temp = vec.array() - vec.mean();
-    Eigen::VectorXd ab = temp.array().abs();
-    Eigen::VectorXd val = ab.array().pow(2);
-    return val.sum() / (val.size() - 1);
+    temp = temp.array().abs();
+    temp = temp.array().pow(2);
+    return temp.sum() / (temp.size() - 1);
 }
 
 MatrixRXd variance3d(std::vector<MatrixRXd> &mat) {

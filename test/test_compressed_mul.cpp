@@ -35,9 +35,10 @@ TEST_CASE("Compressed multiplication tests") {
 }
 
 TEST_CASE("Checking the variance bounds of the whole algorithm") {
-    int N_SAMPLES = 1000000;
+    int N_SAMPLES = 1000;
+    int MAX_SAMPLES = 100000;
 
-    int n = 5, b = 1, d = 1;
+    int n = 5, b = 200, d = 1;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
@@ -51,16 +52,18 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
         m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
             std::tuple<int, int, int, std::mt19937_64> cargs = std::make_tuple(n, b, d, rng);
+            std::cout << "Fully random hashing variance test:" << std::endl;
             auto start = std::chrono::steady_clock::now();
-            bool bound_hold = test_variance<Eigen::MatrixXi>(m1, m2, N_SAMPLES, b, d, fully_random_constructor, fully_random_hash(), cargs);
+            bool bound_hold = test_variance2<Eigen::MatrixXi>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, fully_random_constructor, fully_random_hash(), cargs);
             std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
         }
         SECTION("Multiply-Shift hash") {
             std::tuple<int, std::mt19937_64> cargs = std::make_tuple(d, rng);
+            std::cout << "Multiply-shift hashing variance test:" << std::endl;
             auto start = std::chrono::steady_clock::now();
-            bool bound_hold = test_variance<MatrixXui>(m1, m2, N_SAMPLES, b, d, multiply_shift_constructor, multiply_shift_hash(), cargs, d);
+            bool bound_hold = test_variance2<MatrixXui>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, multiply_shift_constructor, multiply_shift_hash(), cargs, b);
             std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
@@ -68,8 +71,9 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
         SECTION("Tabulation hash") {
             int p = 32, q = 32, r = 8;
             std::tuple<int, int, int, int, std::mt19937_64> cargs = std::make_tuple(p, q, r, d, rng);
+            std::cout << "Tabulation hashing variance test:" << std::endl;
             auto start = std::chrono::steady_clock::now();
-            bool bound_hold = test_variance<std::vector<MatrixXui>>(m1, m2, N_SAMPLES, b, d, tabulation_constructor, tabulation_hash(), cargs, b, r, ceil(p / r));
+            bool bound_hold = test_variance2<std::vector<MatrixXui>>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, tabulation_constructor, tabulation_hash(), cargs, b, r, ceil(p / r));
             std::cout << "\nElapsed(ms)=" << since(start).count();
             REQUIRE((true == bound_hold));
             std::cout << std::endl;
@@ -186,25 +190,35 @@ TEST_CASE("Parallel") {
 }
 
 TEST_CASE("Benchmarks", "[!benchmark]") {
-    int n = 2000;
-    int b = 2000;
+    unsigned int seed = std::random_device{}();
+    std::mt19937_64 rng(seed);
+
+    int n = 700;
+    int b = 600;
     int d = 3;
+    double density = 0.001;
 
     std::cout << "----- Settings -----" << std::endl;
     std::cout << "n = " << n << std::endl;
     std::cout << "b = " << b << std::endl;
     std::cout << "d = " << d << std::endl;
-
-    unsigned int seed = std::random_device{}();
-    std::mt19937_64 rng(seed);
+    std::cout << "density = " << density << std::endl;
+#ifdef USE_MKL
+    std::cout << "Backend = MKL" << std::endl;
+#elif USE_ACCELERATE
+    std::cout << "Backend = ACCELERATE" << std::endl;
+#else
+    std::cout << "Backend = FFTW" << std::endl;
+#endif
+    std::cout << "Seed = " << seed << std::endl;
 
     MatrixRXd compressed1;
     MatrixRXd compressed2;
     MatrixRXd result1;
     MatrixRXd result2;
 
-    MatrixRXd m1 = sparse_matrix_generator(n, 0.001, rng);
-    MatrixRXd m2 = sparse_matrix_generator(n, 0.001, rng);
+    MatrixRXd m1 = sparse_matrix_generator(n, density, rng);
+    MatrixRXd m2 = sparse_matrix_generator(n, density, rng);
 
 
     Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
@@ -229,27 +243,5 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     // };
     // BENCHMARK("Sequential Decompress") {
     //     result1 = decompress_matrix(compressed1, n, b, d, fully_random_hash(), hashes1);
-    // };
-
-
-    // Eigen::VectorXd vec = Eigen::VectorXd::Random(d);
-
-    // double val;
-    // double median1;
-    // double median2;
-    // BENCHMARK("find_median") {
-    //     #pragma omp parallel for
-    //     for (int i = 0; i < n*n; i++) {
-    //         std::nth_element(xt, xt + d / 2, xt + d);
-    //         median1 = xt[d / 2];
-
-    //         if (d % 2 != 0) {
-    //             c(i, j) = median1;
-    //         } else {
-    //             std::nth_element(xt.begin(), xt.begin() + (d - 1) / 2, xt.end());
-    //             median2 = xt[d / 2 - 1];
-    //             val = (median1 + median2) / 2.0;
-    //         }
-    //     }
     // };
 }

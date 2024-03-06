@@ -4,7 +4,6 @@
 
 #include <Eigen/Dense>
 #include <random>
-#include <unordered_map>
 
 typedef Eigen::Matrix<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
 
@@ -20,6 +19,7 @@ struct Hashes {
     T s1;
     T s2;
 };
+
 
 /**
  * @brief Constructs a \p Hashes containing the coefficients for \p d fully 
@@ -47,7 +47,7 @@ struct fully_random_hash {
      * @param sign is the indicator for the function to hash to the values {-1,1}
      * @return int The hashed value
      */
-    int operator()(Eigen::MatrixXi &map, int index, uint32_t x, int sign) {
+    int operator()(Eigen::MatrixXi &map, int index, uint32_t x, int) {
         return map(index, x);
     }
 };
@@ -123,10 +123,10 @@ struct tabulation_hash {
      * @param t is the 
      * @return int The hashed value
      */
-    int operator()(std::vector<MatrixXui> &map, int index, uint32_t x, int sign, int b, int r, int t) {
+    int operator()(std::vector<MatrixXui> &map, int index, uint32_t x, int sign, int b, uint32_t r, int t) {
         uint32_t res = 0;
         MatrixXui &tab_matrix = map[index];
-        int mask = (1 << r) - 1;
+        uint32_t mask = (1 << r) - 1;
 
         for (int i = 0; i < t; i++) {
             res ^= tab_matrix(i, (x >> r * i) & mask);
