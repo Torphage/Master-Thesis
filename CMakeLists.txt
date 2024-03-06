@@ -64,7 +64,7 @@ find_package(OpenMP REQUIRED)
 
 
 # Main program
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp src/*.tpp)
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp src/*.tpp include/*.hpp)
 
 add_executable(app ${SOURCES})
 
@@ -85,7 +85,7 @@ endif(BLAS_FOUND)
 
 
 # Removes main.cpp from the test executable
-file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp test/*.tpp src/*.cpp src/*.hpp src/*.tpp)
+file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp test/*.tpp src/*.cpp src/*.hpp src/*.tpp include/*.hpp)
 FOREACH(item ${TESTS})
   IF(${item} MATCHES "src/main.cpp")
     LIST(REMOVE_ITEM TESTS ${item})
