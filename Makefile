@@ -9,6 +9,7 @@ clean:
 
 build:
 	mkdir -p build
+	cmake -D USE_$(d)=ON -S . -B ./build
 	cmake --build build -j 4
 
 rebuild:
@@ -32,9 +33,26 @@ all:
 
 # Specific tests
 
+
+
+gen:
+	$(MAKE) build
+	./build/input_generator --size=$(size) --density=$(density)
+
+b:
+	./build/input_generator --size=$(size) --density=$(density) | ./build/benchmarks --size=$(size) --density=$(density) --benchmark_out="benchmark.json"
+
 bench:
 	$(MAKE) build
+	$(MAKE) b
+
+catchb:
 	./build/tests --benchmark-samples=100 benchmarks
+
+catchbuild:
+	$(MAKE) build
+	$(MAKE) catchb
+
 
 test:
 	$(MAKE) build

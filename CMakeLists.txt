@@ -11,10 +11,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Disable the Google Benchmark requirement on Google Test
+set(BENCHMARK_ENABLE_TESTING NO)
+set(BENCHMARK_OUT "benchmark.json")
+
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wunused-parameter")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(BLAS_PROVIDED ON)
 
@@ -53,29 +57,81 @@ endif(BLAS_PROVIDED)
 # Imports libraries
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Catch2 3 REQUIRED)
-# find_package(benchmark REQUIRED)
-
+find_package(benchmark REQUIRED)
+find_package(OpenMP REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
 include_directories(PkgConfig::FFTW)
 
+############ Benchmarks ############
 
-find_package(OpenMP REQUIRED)
+file(GLOB_RECURSE BENCHMARKS benchmark/*.cpp benchmark/*.hpp src/*.cpp src/*.hpp include/*.hpp)
+FOREACH(item ${BENCHMARKS})
+  IF(${item} MATCHES "src/main.cpp")
+    LIST(REMOVE_ITEM BENCHMARKS ${item})
+  ENDIF(${item} MATCHES "src/main.cpp")
+  IF(${item} MATCHES "benchmark/input_generator.cpp")
+    LIST(REMOVE_ITEM BENCHMARKS ${item})
+  ENDIF(${item} MATCHES "benchmark/input_generator.cpp")
+ENDFOREACH(item)
+add_executable(benchmarks ${BENCHMARKS})
+
+target_link_libraries(benchmarks Eigen3::Eigen)
+target_link_libraries(benchmarks PkgConfig::FFTW)
+target_link_libraries(benchmarks benchmark::benchmark)
+
+if(OpenMP_FOUND)
+  target_link_libraries(benchmarks OpenMP::OpenMP_CXX)
+endif(OpenMP_FOUND)
+
+if(BLAS_FOUND)
+  message("BLAS found")
+  include_directories(${BLAS_INCLUDE_DIRS})
+  target_link_libraries(benchmarks ${BLAS_LIBRARIES})
+endif(BLAS_FOUND)
+
+############ Input generator ############
+
+file(GLOB_RECURSE INPUT_GENERATOR benchmark/*.cpp benchmark/*.hpp src/*.cpp src/*.hpp include/*.hpp)
+FOREACH(item ${INPUT_GENERATOR})
+  IF(${item} MATCHES "src/main.cpp")
+    LIST(REMOVE_ITEM INPUT_GENERATOR ${item})
+  ENDIF(${item} MATCHES "src/main.cpp")
+  IF(${item} MATCHES "benchmark/benchmark_compressed_mul.cpp")
+    LIST(REMOVE_ITEM INPUT_GENERATOR ${item})
+  ENDIF(${item} MATCHES "benchmark/benchmark_compressed_mul.cpp")
+ENDFOREACH(item)
+add_executable(input_generator ${INPUT_GENERATOR})
+
+target_link_libraries(input_generator Eigen3::Eigen)
+target_link_libraries(input_generator PkgConfig::FFTW)
+target_link_libraries(input_generator benchmark::benchmark)
+
+if(OpenMP_FOUND)
+  target_link_libraries(input_generator OpenMP::OpenMP_CXX)
+endif(OpenMP_FOUND)
+
+if(BLAS_FOUND)
+  message("BLAS found")
+  include_directories(${BLAS_INCLUDE_DIRS})
+  target_link_libraries(input_generator ${BLAS_LIBRARIES})
+endif(BLAS_FOUND)
 
 
-# Main program
+
+############ Main program ############
+
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp src/*.tpp include/*.hpp)
-
 add_executable(app ${SOURCES})
 
 target_link_libraries(app Eigen3::Eigen)
 target_link_libraries(app PkgConfig::FFTW)
+target_link_libraries(app benchmark::benchmark)
 
 if(OpenMP_FOUND)
   target_link_libraries(app OpenMP::OpenMP_CXX)
 endif(OpenMP_FOUND)
 
-# New stuff, testing
 if(BLAS_FOUND)
   message("BLAS found")
   include_directories(${BLAS_INCLUDE_DIRS})
@@ -83,9 +139,10 @@ if(BLAS_FOUND)
 endif(BLAS_FOUND)
 
 
+############ Testing ############
 
 # Removes main.cpp from the test executable
-file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp test/*.tpp src/*.cpp src/*.hpp src/*.tpp include/*.hpp)
+file(GLOB_RECURSE TESTS test/*.cpp test/*.hpp src/*.cpp src/*.hpp include/*.hpp)
 FOREACH(item ${TESTS})
   IF(${item} MATCHES "src/main.cpp")
     LIST(REMOVE_ITEM TESTS ${item})
@@ -97,7 +154,7 @@ add_executable(tests ${TESTS})
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(tests PUBLIC Eigen3::Eigen)
 target_link_libraries(tests PUBLIC PkgConfig::FFTW)
-# target_link_libraries(tests PUBLIC benchmark::benchmark)
+target_link_libraries(tests PUBLIC benchmark::benchmark)
 
 if(OpenMP_FOUND)
   target_link_libraries(tests PUBLIC OpenMP::OpenMP_CXX)
@@ -112,11 +169,16 @@ if(BLAS_PROVIDED)
   if (NOT USE_MKL)
     target_compile_definitions(app PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(tests PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(benchmarks PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(input_generator PUBLIC EIGEN_USE_BLAS)
   elseif(USE_MKL)
     target_compile_definitions(app PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(tests PUBLIC EIGEN_USE_MKL_ALL) 
+    target_compile_definitions(benchmarks PUBLIC EIGEN_USE_MKL_ALL) 
+    target_compile_definitions(input_generator PUBLIC EIGEN_USE_MKL_ALL) 
   endif()
 endif(BLAS_PROVIDED)
+
 
 
 

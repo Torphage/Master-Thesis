@@ -2,6 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,c++,cmake
 
 .vscode/*
+benchmark.json
 
 ### C++ ###
 # Prerequisites
