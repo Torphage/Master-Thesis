@@ -13,7 +13,6 @@ endif()
 
 # Disable the Google Benchmark requirement on Google Test
 set(BENCHMARK_ENABLE_TESTING NO)
-set(BENCHMARK_OUT "benchmark.json")
 
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wunused-parameter")

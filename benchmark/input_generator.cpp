@@ -1,9 +1,9 @@
 
-#include <iostream>
-#include <random>
-
 #include "../include/cxxopts.hpp"
 #include "../src/compressed_mul.hpp"
+
+#include <iostream>
+#include <random>
 
 int main(int argc, char** argv) {
     cxxopts::Options options("parameters", "Parameters to test with");
@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
     std::mt19937_64 rng(seed);
     const int n = result["n"].as<int>();
     double density = result["density"].as<double>();
+    if (density == 0) density = 0.1;
 
     MatrixRXd m1 = sparse_matrix_generator(n, density, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, density, rng);
