@@ -1,8 +1,8 @@
+#include "../src/hashing.hpp"
+
 #include <cmath>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
-#include "../src/hashing.hpp"
-
 
 template <typename T> std::string type_name();
 

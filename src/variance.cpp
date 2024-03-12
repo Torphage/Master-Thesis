@@ -1,15 +1,15 @@
 #include "variance.hpp"
 
+#include "compressed_mul.hpp"
+#include "hashing.hpp"
+#include "utils.hpp"
+
 #include <omp.h>
 
 #include <Eigen/Dense>
 #include <iostream>
 #include <memory>
 #include <vector>
-
-#include "compressed_mul.hpp"
-#include "hashing.hpp"
-#include "utils.hpp"
 
 double variance(Eigen::VectorXd &vec) {
     Eigen::VectorXd temp = vec.array() - vec.mean();

@@ -6,6 +6,8 @@
 #include <chrono>
 #include <random>
 
+// namespace utils {
+
 /**
  * @brief Alias to \p std::complex<double>
  */
@@ -20,6 +22,12 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> M
  * @brief A row-major matrix of dynamic size, with type std::complex<doubles>
  */
 typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXcd;
+
+/**
+ * @brief A row-major matrix of dynamic size, with type std::complex<uint64_t>
+ */
+typedef Eigen::Matrix<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
+
 
 /**
  * @brief Generates a random sparse square matrix
@@ -66,5 +74,7 @@ template <class result_t = std::chrono::milliseconds,
 auto since(std::chrono::time_point<clock_t, duration_t> const &start) {
     return std::chrono::duration_cast<result_t>(clock_t::now() - start);
 }
+
+// }
 
 #endif

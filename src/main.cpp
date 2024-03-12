@@ -1,16 +1,15 @@
-#include <iostream>
-#include <random>
-
 #include "compressed_mul.hpp"
 #include "hashing.hpp"
 #include "utils.hpp"
+
+#include <iostream>
+#include <random>
 
 int main() {
     int b = 15, d = 14, n = 10;
 
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
-    std::mt19937_64 rng2(2);
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
 
     MatrixRXd m1 = sparse_matrix_generator(n, 0.1, rng);
@@ -19,13 +18,19 @@ int main() {
     // MatrixRXd m1 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
     // MatrixRXd m2 = MatrixRXd::NullaryExpr(n,n,[&](){return uni(rng);});
 
-    Hashes<Eigen::MatrixXi> hashes = fully_random_constructor(n, b, d, rng);
-    // Hashes<MatrixXui> hashes = multiply_shift_constructor(d, rng);
-    // int p = 32, q = 32, r = 8;
-    // Hashes<std::vector<MatrixXui>> hashes = tabulation_constructor(p, q, r, d, rng);
+    // FullyRandomHash hash(n, b, d, seed);
+    // MultiplyShiftHash hash(d, seed);
+    int p = 32, q = 32, r = 8;
+    TabulationHash hash(p, q, r, d, seed);
+    
+    MatrixRXd compressed = MatrixRXd::Zero(d, b);
+    MatrixRXd pas = MatrixRXd::Zero(d, b);
+    MatrixRXd pbs = MatrixRXd::Zero(d, b);
+    MatrixRXd result = MatrixRXd::Zero(n, n);
+    MatrixRXd xt = MatrixRXd::Zero(n, d);
 
-    MatrixRXd prod = compressed_product(m1, m2, b, d, fully_random_hash(), hashes);
-    MatrixRXd result = decompress_matrix(prod, n, b, d, fully_random_hash(), hashes);
+    bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs);
+    debompress_matrix_par(compressed, n, b, d, hash, result, xt);
 
     MatrixRXd real_product = m1 * m2;
 

@@ -97,7 +97,6 @@ void ifft_fftw(ifft_struct info, int in_offset, int out_offset) {
 
 void clean_fft_fftw(fft_struct info) {
     fftw_destroy_plan(info.plan);
-    delete[] info.out;
 }
 
 void clean_ifft_fftw(ifft_struct info) {
