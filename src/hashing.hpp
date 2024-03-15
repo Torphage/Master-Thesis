@@ -8,11 +8,10 @@
 #include <random>
 #include <iostream>
 
-
 /**
- * @brief 
- * 
- * @tparam T 
+ * @brief
+ *
+ * @tparam T
  */
 template <typename T>
 struct Hashes {
@@ -24,21 +23,27 @@ struct Hashes {
 
 /**
  * @brief 
+ * 
+ * @tparam Word 
  */
+template <typename Word>
 class FullyRandomHash {
-  public:
-    MatrixXui h1;
-    MatrixXui h2;
-    MatrixXui s1;
-    MatrixXui s2;
+   private:
+    typedef Eigen::Matrix<Word, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixType;
+
+   public:
+    MatrixType h1;
+    MatrixType h2;
+    MatrixType s1;
+    MatrixType s2;
     /**
-     * @brief Constructs a \p Hashes containing the coefficients for \p d fully 
-     *        random hash functions for each of h1, h2, s1, s2  
-     * 
+     * @brief Constructs a \p Hashes containing the coefficients for \p d fully
+     *        random hash functions for each of h1, h2, s1, s2
+     *
      * @param n is the size range of values that are hashed
      * @param b is the range to which values are hashed
      * @param d is the number of hash functions that will be used
-     * @param seed 
+     * @param seed
      */
     FullyRandomHash(int n, int b, int d, int seed) {
         h1.resize(d, n);
@@ -48,7 +53,7 @@ class FullyRandomHash {
 
         std::mt19937_64 rng(seed);
 
-        std::uniform_int_distribution<uint64_t> bi(0, b - 1);
+        std::uniform_int_distribution<Word> bi(0, b - 1);
 
         for (int i = 0; i < d * n; i++) {
             h1.data()[i] = bi(rng);
@@ -60,14 +65,14 @@ class FullyRandomHash {
 
     /**
      * @brief A fully random hash function
-     * 
+     *
      * @param map is the hash matrix (each contains the coefficients for a unique hash function)
      * @param index is the specific hash function (out of d total) to be used
      * @param x is the key to be hashed
      * @param range is the *unused* range to which values are hashed
-     * @return int The hashed value
+     * @return Word The hashed value
      */
-    int operator()(MatrixXui &coeffs, int index, uint32_t x, int) {
+    Word operator()(MatrixType& coeffs, int index, int x, int) const {
         return coeffs(index, x);
     }
 };
@@ -75,18 +80,26 @@ class FullyRandomHash {
 /**
  * @brief 
  * 
+ * @tparam Word 
+ * @tparam SmallWord 
  */
+template <typename Word, typename SmallWord>
 class MultiplyShiftHash {
-  public:
-    MatrixXui h1;
-    MatrixXui h2;
-    MatrixXui s1;
-    MatrixXui s2;
+   private:
+    typedef Eigen::Matrix<Word, Eigen::Dynamic, 2, Eigen::RowMajor> MatrixType;
+    static constexpr int size = 8 * sizeof(SmallWord);
+
+   public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    MatrixType h1;
+    MatrixType h2;
+    MatrixType s1;
+    MatrixType s2;
     /**
      * @brief Construct a new Multiply Shift Hash object
-     * 
-     * @param d 
-     * @param seed 
+     *
+     * @param d
+     * @param seed
      */
     MultiplyShiftHash(int d, int seed) {
         h1.resize(d, 2);
@@ -95,8 +108,7 @@ class MultiplyShiftHash {
         s2.resize(d, 2);
 
         std::mt19937_64 rng(seed);
-
-        std::uniform_int_distribution<uint64_t> uni(0, UINT64_MAX);
+        std::uniform_int_distribution<Word> uni(0, std::numeric_limits<Word>::max());
 
         for (int i = 0; i < 2 * d; i++) {
             h1.data()[i] = uni(rng);
@@ -108,48 +120,63 @@ class MultiplyShiftHash {
 
     /**
      * @brief A multiply-shift hash function
-     * 
+     *
      * @param map is the hash matrix (each contains the coefficients for a unique hash function)
      * @param index is the specific hash function (out of d total) to be used
      * @param x is the key to be hashed
      * @param range is the range to which values are hashed
-     * @return int The hashed value
+     * @return SmallWord The hashed value
      */
-    int operator()(MatrixXui &coeffs, int index, uint32_t x, int range) {
-        uint64_t u = coeffs(index, 0);
-        uint64_t v = coeffs(index, 1);
-
-        return (range * ((u * x + v) >> 32)) >> 32;
+    SmallWord operator()(MatrixType& coeffs, int index, SmallWord x, SmallWord range) const {
+        return (range * ((coeffs(index, 0) * x + coeffs(index, 1)) >> size)) >> size;
     }
 };
 
-class TabulationHash {
-  private:
-    int r;
-    int t;
+/**
+ * @brief A constexpr ceil function with the sole purpose of speeding up tabulation hashing
+ * 
+ * @param dividend is the divident
+ * @param divisor is the divisor
+ * @return constexpr int 
+ */
+constexpr int constexpr_ceil(int dividend, int divisor) {
+    return (dividend + divisor - 1) / divisor;
+}
 
-  public:
-    MatrixXui h1;
-    MatrixXui h2;
-    MatrixXui s1;
-    MatrixXui s2;
-    
+/**
+ * @brief 
+ * 
+ * @tparam WordIn is the number of bits in the key to be hashed
+ * @tparam WordOut is the number of bits of the values that are hashed to
+ * @tparam r is the block size, i.e the number of blocks that the key is divided into
+ */
+template <typename WordIn, typename WordOut, int r>
+class TabulationHash {
+   private:
+    typedef Eigen::Matrix<WordOut, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixType;
+    static constexpr int p = 8 * sizeof(WordIn);
+    static constexpr int q = 8 * sizeof(WordOut);
+    static constexpr int t = constexpr_ceil(8 * sizeof(WordIn), r);
+    // int t;
+
+   public:
+    MatrixType h1;
+    MatrixType h2;
+    MatrixType s1;
+    MatrixType s2;
+
     /**
      * @brief Constructs a \p Hashes containing the coefficients for \p d tabulation
-     *        hash functions for each of h1, h2, s1, s2  
-     * @param p is the number of bits in the key to be hashed
-     * @param q is the number of bits of the values that are hashed to 
-     * @param r is the block size, i.e the number of blocks that the key is divided into
+     *        hash functions for each of h1, h2, s1, s2
      * @param d is the number of hash functions that will be used
-     * @param seed 
+     * @param seed
      */
-    TabulationHash(int p, uint64_t q, int r, int d, int seed) : r(r) {
+    TabulationHash(int d, int seed) {
         std::mt19937_64 rng(seed);
-        std::uniform_int_distribution<uint64_t> uni(0, static_cast<uint64_t>(1) << q);
+        std::uniform_int_distribution<WordOut> uni(0, static_cast<WordOut>(1) << q);
 
         int size = 1 << r;
-        t = ceil(p / r);
-
+        
         h1.resize(t * d, size);
         h2.resize(t * d, size);
         s1.resize(t * d, size);
@@ -164,19 +191,19 @@ class TabulationHash {
             }
         }
     };
-
     /**
      * @brief A tabulation hash function
-     * 
+     *
      * @param map is a vector of tabulation matrices (represented as a matrix, each entry represents a unique hash function)
      * @param index is the specific hash function (out of d total) to be used
      * @param x is the key to be hashed
      * @param range is the range to which values are hashed
-     * @return int The hashed value
+     * @return WordOut The hashed value
      */
-    int operator()(MatrixXui &coeffs, int index, uint32_t x, int range) {
-        uint32_t res = 0;
-        uint32_t mask = (1 << r) - 1;
+    WordOut operator()(MatrixType& coeffs, int index, int x, int range) const {
+        
+        WordOut res = 0;
+        constexpr WordOut mask = (1 << r) - 1;
 
         for (int i = 0; i < t; i++) {
             res ^= coeffs(t * index + i, (x >> r * i) & mask);
