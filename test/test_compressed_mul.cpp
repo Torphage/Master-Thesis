@@ -18,16 +18,15 @@ TEST_CASE("Compressed multiplication tests") {
     int b = 4;
     int d = 2;
 
-    FullyRandomHash random_hashes(n, b, d, seed);
+    FullyRandomHash<int> random_hashes(n, b, d, seed);
 
     compressed_mul_tests(n, b, d, "Fully random hash", random_hashes);
 
-    MultiplyShiftHash shift_hashes(d, seed);
+    MultiplyShiftHash<uint64_t, uint32_t> shift_hashes(d, seed);
 
     compressed_mul_tests(n, b, d, "Multiply-shift hash", shift_hashes);
 
-    int p = 32, q = 32, r = 8;
-    TabulationHash tabulation_hashes(p, q, r, d, seed);
+    TabulationHash<uint32_t, uint32_t, 8> tabulation_hashes(d, seed);
 
     compressed_mul_tests(n, b, d, "Tabulation hash", tabulation_hashes);
 }
@@ -50,21 +49,20 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
         m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
             std::cout << "Fully random hashing variance test:" << std::endl;
-            auto lambda = [n, b, d](int seed) { return FullyRandomHash(n,   b,   d, seed); };
-            bool bound_hold = test_variance<FullyRandomHash>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
+            auto lambda = [n, b, d](int seed) { return FullyRandomHash<int>(n,   b,   d, seed); };
+            bool bound_hold = test_variance<FullyRandomHash<int>>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
             REQUIRE((true == bound_hold));
         }
         SECTION("Multiply-Shift hash") {
             std::cout << "Multiply-shift hashing variance test:" << std::endl;
-            auto lambda = [d](int seed) { return MultiplyShiftHash(d, seed); };
-            bool bound_hold = test_variance<MultiplyShiftHash>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
+            auto lambda = [d](int seed) { return MultiplyShiftHash<uint64_t, uint32_t>(d, seed); };
+            bool bound_hold = test_variance<MultiplyShiftHash<uint64_t, uint32_t>>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
             REQUIRE((true == bound_hold));
         }
         SECTION("Tabulation hash") {
-            int p = 32, q = 32, r = 8;
-            auto lambda = [p, q, r, d](int seed) { return TabulationHash(p,   q,   r,   d, seed); };
+            auto lambda = [d](int seed) { return TabulationHash<uint32_t, uint32_t, 8>(d, seed); };
             std::cout << "Tabulation hashing variance test:" << std::endl;
-            bool bound_hold = test_variance<TabulationHash>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
+            bool bound_hold = test_variance<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
             REQUIRE((true == bound_hold));
         }
     }
@@ -92,7 +90,7 @@ TEST_CASE("Compress") {
     MatrixRXd result;
     MatrixRXd expected;
 
-    FullyRandomHash hash(n, b, d, seed);
+    FullyRandomHash<int> hash(n, b, d, seed);
 
     SECTION("Compressing two zero matrices") {
         m1 = MatrixRXd::Zero(n, n);
@@ -127,7 +125,7 @@ TEST_CASE("Decompress") {
     MatrixRXd result;
     MatrixRXd expected;
 
-    FullyRandomHash hash(n, b, d, seed);
+    FullyRandomHash<int> hash(n, b, d, seed);
 
     GIVEN("A matrix with no zero-elements") {
         compressed = MatrixRXd::Random(n, n);  // make sure that no zero elements are present
@@ -151,7 +149,7 @@ TEST_CASE("Parallel") {
 
     unsigned int seed = std::random_device{}();
 
-    FullyRandomHash hash(n, b, d, seed);
+    FullyRandomHash<int> hash(n, b, d, seed);
 
     SECTION("Parallel compress gives same as sequential compress") {
         m1 = MatrixRXd::Random(n, n);
@@ -176,6 +174,7 @@ TEST_CASE("Parallel") {
 }
 
 TEST_CASE("Benchmarks", "[!benchmark]") {
+
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
 
@@ -183,6 +182,8 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     int b = 2000;
     int d = 3;
     double density = 0.001;
+
+
 
     std::cout << "----- Settings -----" << std::endl;
     std::cout << "n = " << n << std::endl;
@@ -198,32 +199,44 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
 #endif
     std::cout << "Seed = " << seed << std::endl;
 
-    MatrixRXd compressed = MatrixRXd::Zero(d, b);
-    MatrixRXd pas = MatrixRXd::Zero(d, b);
-    MatrixRXd pbs = MatrixRXd::Zero(d, b);
-    MatrixRXd result = MatrixRXd::Zero(n, n);
-    MatrixRXd xt = MatrixRXd::Zero(n, d);
 
     MatrixRXd m1 = sparse_matrix_generator(n, density, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, density, rng);
 
-    FullyRandomHash hash(n, b, d, seed);
-    // MultiplyShiftHash hash(d, seed);
-    // int p = 32, q = 32, r = 8;
-    // TabulationHash hash(p, q, r, d, seed);
 
-    BENCHMARK("Eigen") {
-        result = m1 * m2;
-    };
+    MatrixRXd compressed = MatrixRXd::Zero(d, b);
+    MatrixRXd pas = MatrixRXd::Zero(d, b);
+    MatrixRXd pbs = MatrixRXd::Zero(d, b);
+    MatrixRXcd ps = MatrixRXcd::Zero(d, b);
+    MatrixRXcd out1(d, b / 2 + 1);
+    MatrixRXcd out2(d, b / 2 + 1);
+    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
+    fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
+    ifft_struct ifft = init_ifft(b, ps.data(), compressed.data());
+
+
+    MatrixRXd result = MatrixRXd::Zero(n, n);
+    MatrixRXd xt = MatrixRXd::Zero(n, d);
+
+    // FullyRandomHash<int> hash(n, b, d, seed);
+    // MultiplyShiftHash<uint64_t, uint32_t> hash(d, seed);
+    TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
+
+    // BENCHMARK("Eigen") {
+    //     result = m1 * m2;
+    // };
 
     BENCHMARK("Parallel Compress") {
-        bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs);
+        bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
     };
-
+    
     BENCHMARK("Parallel Decompress") {
         debompress_matrix_par(compressed, n, b, d, hash, result, xt);
     };
 
+    clean_fft(fft1);
+    clean_fft(fft2);
+    clean_ifft(ifft);
     // BENCHMARK("Sequential Compress") {
     //     compressed1 = compressed_product(m1, m2, b, d, hash);
     // };

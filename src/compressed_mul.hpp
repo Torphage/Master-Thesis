@@ -16,6 +16,13 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
+#include <vector>
+
+
+
+/*
+MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p, MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft
+*/
 
 /**
  * @brief Compresses a matrix multiplication according to Pagh's algorithm found in
@@ -152,18 +159,13 @@ MatrixRXd compressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b
     return result;
 }
 
-
 template <typename T>
-void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T hash, MatrixRXd& out, MatrixRXd& pas, MatrixRXd& pbs) {
+void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                            MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                            MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
     int n = m1.rows();
-
-    MatrixRXcd p = MatrixRXcd::Zero(d, b);
-
-    std::vector<Complex> out1(d * (b / 2 + 1));
-    std::vector<Complex> out2(d * (b / 2 + 1));
-
-    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
-    fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
+    
+    Eigen::Block<MatrixRXcd> p_short = p.block(0, 0, d, b / 2 + 1);
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
@@ -174,36 +176,25 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int
             pbs.row(t).setZero();
 
             for (int i = 0; i < n; i++) {
-                pas(t, (hash(hash.h1, t, i, b))) += (2 * hash(hash.s1, t, i, 2) - 1) * m1(i, k);
-                pbs(t, (hash(hash.h2, t, i, b))) += (2 * hash(hash.s2, t, i, 2) - 1) * m2(k, i);
+                // ? Can we get rid of this static_cast? <--- bozo
+                pas(t, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                pbs(t, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
             }
 
             fft(fft1, in_offset, out_offset);
             fft(fft2, in_offset, out_offset);
 
-            for (int i = 0; i < b / 2 + 1; i++) {
-                p(t, i) += out1[i + out_offset] * out2[i + out_offset];
-            }
+            p_short.row(t).array() += out1.row(t).array() * out2.row(t).array();
         }
     }
 
-    clean_fft(fft1);
-    clean_fft(fft2);
-
-    // MatrixRXd result = MatrixRXd::Zero(d, b);
-    ifft_struct info = init_ifft(b, p.data(), out.data());
-
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
-        ifft(info, t * b, t * b);
+        ifft(ifft1, t * b, t * b);
     }
 
-    out /= b;
-    clean_ifft(info);
-
-    // return result;
+    compressed /= b;
 }
-
 
 /**
  * @brief Decompressed a compressed product according to Pagh's algorithm found in
@@ -292,39 +283,39 @@ MatrixRXd decompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T hash)
 }
 
 template <typename T>
-void debompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T hash, MatrixRXd& c, MatrixRXd& xt) {
-
+void debompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& c, MatrixRXd& xt) {
     double* start = xt.data();
 
-    double* row = start;
-#pragma omp parallel for
-    for (int i = 0; i < n; i++) {
+#pragma omp parallel
+    {
         double median1;
         double median2;
-        double* temp = start + (i * d);
+        double* row;
+#pragma omp for schedule(dynamic)
+        for (int i = 0; i < n; i++) {
+            row = start + (i * d);
 
-        for (int j = 0; j < n; j++) {
+            for (int j = 0; j < n; j++) {
+                for (int t = 0; t < d; t++) {
+                    xt(i, t) = (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * (2 * static_cast<int>(hash(hash.s2, t, j, 2)) - 1) *
+                               p(t, static_cast<int>(hash(hash.h1, t, i, b) + static_cast<int>(hash(hash.h2, t, j, b))) % b);
+                }
 
-            for (int t = 0; t < d; t++) {
-                xt(i, t) = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
-                        p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
-            }
+                // Median calculations
+                std::nth_element(row, row + d / 2, row + d);
 
-            // Median calculations
-            std::nth_element(temp, temp + d / 2, temp + d);
-            
-            median1 = xt(i, d / 2);
+                median1 = xt(i, d / 2);
 
-            if (d % 2 != 0) {
-                c(i, j) = median1;
-            } else {
-                std::nth_element(temp, temp + (d - 1) / 2, temp + d);
-                median2 = xt(i, d / 2 - 1);
-                c(i, j) = (median1 + median2) / 2.0;
+                if (d % 2 != 0) {
+                    c(i, j) = median1;
+                } else {
+                    std::nth_element(row, row + (d - 1) / 2, row + d);
+                    median2 = xt(i, d / 2 - 1);
+                    c(i, j) = (median1 + median2) / 2.0;
+                }
             }
         }
     }
 }
-
 
 #endif
