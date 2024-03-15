@@ -8,23 +8,37 @@
 int main(int argc, char** argv) {
     cxxopts::Options options("parameters", "Parameters to test with");
 
-    unsigned int temp_seed = std::random_device{}();
+    options.allow_unrecognised_options();
+
     // clang-format off
     options.add_options()
-        ("s,seed", "The random seed", cxxopts::value<unsigned int>()->default_value(std::to_string(temp_seed)))
-        ("n,size", "Size", cxxopts::value<int>()->default_value("0"))
+        ("n,size", "Size", cxxopts::value<int>())
+        ("s,seed", "The random seed", cxxopts::value<unsigned int>())
         ("p,density", "Density", cxxopts::value<double>()->default_value("1.0"))
         ("h,debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
     ;
     // clang-format on
 
+    options.parse_positional({"n", "density", "seed"});
+
     cxxopts::ParseResult result = options.parse(argc, argv);
 
-    unsigned int seed = result["seed"].as<unsigned int>();
-    std::mt19937_64 rng(seed);
     const int n = result["n"].as<int>();
-    double density = result["density"].as<double>();
-    if (density == 0) density = 0.1;
+
+    unsigned long seed;
+    if (result.count("seed")) {
+        seed = result["seed"].as<unsigned int>();
+    } else {
+        seed = std::random_device{}();
+    }
+    std::mt19937_64 rng(seed);
+
+    double density;
+    if (result.count("density")) {
+        density = result["density"].as<double>();
+    } else {
+        density = 5 / n;  // Might need to be adjusted
+    }
 
     MatrixRXd m1 = sparse_matrix_generator(n, density, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, density, rng);

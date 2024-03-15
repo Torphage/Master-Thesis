@@ -4,6 +4,8 @@
 .vscode/*
 benchmark.json
 
+.DS_STORE
+
 ### C++ ###
 # Prerequisites
 *.d
