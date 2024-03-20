@@ -173,7 +173,7 @@ class TabulationHash {
      */
     TabulationHash(int d, int seed) {
         std::mt19937_64 rng(seed);
-        std::uniform_int_distribution<WordOut> uni(0, static_cast<WordOut>(1) << q);
+        std::uniform_int_distribution<WordOut> uni(0, std::numeric_limits<WordOut>::max());
 
         int size = 1 << r;
         
