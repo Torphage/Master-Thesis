@@ -12,9 +12,10 @@ full = "true"
 mul = "false"
 tab = "false"
 out_file = "./benchmark/benchmark.json"
+M_ARCH = ""
 
 clean:
-	rm -r build
+	rm -rf build
 
 build:
 	mkdir -p build
@@ -23,7 +24,11 @@ build:
 
 rebuild:
 	$(MAKE) clean
-	cmake -D USE_$(d)=ON -S . -B ./build
+ifndef SLURM_ENV
+	cmake -D USE_$(d)=ON -D M_ARCH=$(M_ARCH) -S . -B ./build
+else
+	cmake -D USE_$(d)=ON -D CPP_ENV=$(SLURM_ENV) -D M_ARCH=$(M_ARCH) -S . -B ./build
+endif
 	cmake --build build -j 4
 
 run:

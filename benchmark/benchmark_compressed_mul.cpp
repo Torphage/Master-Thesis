@@ -11,18 +11,6 @@
 
 
 
-static void BM_block(benchmark::State& state) {
-    int b = state.range(0);
-    int d = state.range(1);
-
-    MatrixRXcd p = MatrixRXcd::Zero(d, b);
-
-    Eigen::Block<MatrixRXcd> p_short = p.block(0, 0, d, b / 2 + 1);
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(p_short = p.block(0, 0, d, b / 2 + 1));
-    }
-}
-
 static void BM_eigen(benchmark::State& state, const MatrixRXd& m1, const MatrixRXd& m2) {
     MatrixRXd result;
     for (auto _ : state) {
@@ -46,6 +34,7 @@ int main(int argc, char** argv) {
         ("full", "Enable fully random", cxxopts::value<bool>())
         ("mul", "Enable multiply-shift", cxxopts::value<bool>())
         ("tab", "Enable tabulation", cxxopts::value<bool>())
+        ("thread_count", "Number of threads to use", cxxopts::value<int>())
         // ("bench", "What benchmarks to run", cxxopts::value<std::vector<std::string>>())
     ;
     // clang-format on
@@ -53,11 +42,13 @@ int main(int argc, char** argv) {
     options.parse_positional({"n", "density", "seed"});
     auto result = options.parse(argc, argv);
 
-
     if (result.count("help")) {
         std::cout << "TODO: some help" << std::endl;
         exit(0);
     }
+
+    int thread_count = result["thread_count"].as<int>();
+    omp_set_num_threads(thread_count);
 
     int n = result["n"].as<int>();
     std::vector<int64_t> bs = result["bb"].as<std::vector<int64_t>>();
@@ -103,47 +94,53 @@ int main(int argc, char** argv) {
 
     // Register the parameterized benchmark with the input values
 
-    benchmark::RegisterBenchmark("Eigen", BM_eigen, m1, m2);
+    benchmark::RegisterBenchmark("Eigen", BM_eigen, m1, m2)
+        ->Iterations(100)
+        ->Repetitions(10)
+        ->DisplayAggregatesOnly(true);
     // benchmark::RegisterBenchmark("BM_block", BM_block) -> Args({b, d});
 
     if (full) {
         benchmark::RegisterBenchmark("compressed_product_par fully_random", BM_compressed_product_random_par<int>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
         benchmark::RegisterBenchmark("decompress_matrix_par fully_random", BM_decompress_matrix_random_par<int>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
     }
 
     if (mul) {
         benchmark::RegisterBenchmark("compressed_product_par multiply-shift", BM_compressed_product_multiply_shift_par<uint32_t, uint16_t>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
         benchmark::RegisterBenchmark("decompress_matrix_par multiply-shift", BM_decompress_matrix_multiply_shift_par<uint32_t, uint16_t>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
     }
 
     if (tab) {
         benchmark::RegisterBenchmark("compressed_product_par tabulation", BM_compressed_product_tabulation_par<uint32_t, uint32_t, 8>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
         benchmark::RegisterBenchmark("decompress_matrix_par tabulation", BM_decompress_matrix_tabulation_par<uint32_t, uint32_t, 8>, m1, m2, seed)
-            ->ArgsProduct({bs, ds});
+            ->ArgsProduct({bs, ds})
+            ->Iterations(100)
+            ->Repetitions(10)
+            ->DisplayAggregatesOnly(true);
     }
-    // benchmark::RegisterBenchmark("compressed_product fully_random", BM_compressed_product_fully_random, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}});
-    // benchmark::RegisterBenchmark("compressed_product fully_random", BM_decompress_matrix_fully_random2<FullyRandomHash>, m1, m2)
-    //     ->Args({20, 2, hash});
-    // benchmark::RegisterBenchmark("compressed_product multiply_shift", BM_compressed_product_multiply_shift, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}});
-    // benchmark::RegisterBenchmark("compressed_product tabulation", BM_compressed_product_tabulation, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}, {32}, {32}, {8}});
-    // benchmark::RegisterBenchmark("decompress_matrix fully_random", BM_decompress_matrix_fully_random, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}});
-    // benchmark::RegisterBenchmark("decompress_matrix multiply_shift", BM_decompress_matrix_multiply_shift, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}});
-    // benchmark::RegisterBenchmark("decompress_matrix tabulation", BM_decompress_matrix_tabulation, m1, m2, rng)
-    //     ->ArgsProduct({{200, 2000}, {1, 20, 40}, {32}, {32}, {8}});
 
     // Initialize Google Benchmark and run specified benchmarks
     benchmark::Initialize(&argc, argv);
-
     benchmark::RunSpecifiedBenchmarks();
 
     return 0;
