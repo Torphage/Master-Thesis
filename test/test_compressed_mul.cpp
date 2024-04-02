@@ -49,7 +49,7 @@ TEST_CASE("Checking the variance bounds of the whole algorithm") {
         m2 = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
         SECTION("Fully-Random hash") {
             std::cout << "Fully random hashing variance test:" << std::endl;
-            auto lambda = [n, b, d](int seed) { return FullyRandomHash<int>(n,   b,   d, seed); };
+            auto lambda = [n, b, d](int seed) { return FullyRandomHash<int>(n, b, d, seed); };
             bool bound_hold = test_variance<FullyRandomHash<int>>(m1, m2, N_SAMPLES, MAX_SAMPLES, b, d, lambda);
             REQUIRE((true == bound_hold));
         }
@@ -174,69 +174,137 @@ TEST_CASE("Parallel") {
 }
 
 TEST_CASE("Benchmarks", "[!benchmark]") {
-
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
 
     int n = 2000;
     int b = 2000;
-    int d = 3;
+    int d = 8;
     double density = 0.001;
 
-
-
-    std::cout << "----- Settings -----" << std::endl;
-    std::cout << "n = " << n << std::endl;
-    std::cout << "b = " << b << std::endl;
-    std::cout << "d = " << d << std::endl;
-    std::cout << "density = " << density << std::endl;
+    {
+        std::cout << "----- Settings -----" << std::endl;
+        std::cout << "n = " << n << std::endl;
+        std::cout << "b = " << b << std::endl;
+        std::cout << "d = " << d << std::endl;
+        std::cout << "density = " << density << std::endl;
 #ifdef USE_MKL
-    std::cout << "Backend = MKL" << std::endl;
+        std::cout << "Backend = MKL" << std::endl;
 #elif USE_ACCELERATE
-    std::cout << "Backend = ACCELERATE" << std::endl;
+        std::cout << "Backend = ACCELERATE" << std::endl;
+#elif USE_AOCL
+        std::cout << "Backend = AOCL" << std::endl;
 #else
-    std::cout << "Backend = FFTW" << std::endl;
+        std::cout << "Backend = FFTW" << std::endl;
 #endif
-    std::cout << "Seed = " << seed << std::endl;
-
+        std::cout << "Seed = " << seed << std::endl;
+    }
 
     MatrixRXd m1 = sparse_matrix_generator(n, density, rng);
     MatrixRXd m2 = sparse_matrix_generator(n, density, rng);
 
+    FullyRandomHash<uint64_t> hash(n, b, d, seed);
+    // MultiplyShiftHash<uint32_t, uint16_t> hash(d, seed);
+    // TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
+    
+    {
+        // MatrixRXd result = MatrixRXd::Zero(n, n);
 
-    MatrixRXd compressed = MatrixRXd::Zero(d, b);
-    MatrixRXd pas = MatrixRXd::Zero(d, b);
-    MatrixRXd pbs = MatrixRXd::Zero(d, b);
-    MatrixRXcd ps = MatrixRXcd::Zero(d, b);
-    MatrixRXcd out1(d, b / 2 + 1);
-    MatrixRXcd out2(d, b / 2 + 1);
-    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
-    fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
-    ifft_struct ifft = init_ifft(b, ps.data(), compressed.data());
+        // BENCHMARK("Eigen") {
+        //     result = m1 * m2;
+        // };
+    }
 
+    {
+        MatrixRXd compressed0 = MatrixRXd::Zero(d, b);
+        MatrixRXd pas0 = MatrixRXd::Zero(d, b);
+        MatrixRXd pbs0 = MatrixRXd::Zero(d, b);
+        MatrixRXcd ps0 = MatrixRXcd::Zero(d, b);
+        MatrixRXcd out10(d, b / 2 + 1);
+        MatrixRXcd out20(d, b / 2 + 1);
+        fft_struct fft10 = init_fft(b, pas0.data(), out10.data());
+        fft_struct fft20 = init_fft(b, pbs0.data(), out20.data());
+        ifft_struct ifft0 = init_ifft(b, ps0.data(), compressed0.data());
 
-    MatrixRXd result = MatrixRXd::Zero(n, n);
-    MatrixRXd xt = MatrixRXd::Zero(n, d);
+        BENCHMARK("Parallel Compress - Original") {
+            bompressed_product_par(m1, m2, b, d, hash, compressed0, pas0, pbs0, ps0, out10, out20, fft10, fft20, ifft0);
+        };
 
-    // FullyRandomHash<int> hash(n, b, d, seed);
-    // MultiplyShiftHash<uint64_t, uint32_t> hash(d, seed);
-    TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
+        clean_fft(fft10);
+        clean_fft(fft20);
+        clean_ifft(ifft0);
+    }
 
-    // BENCHMARK("Eigen") {
-    //     result = m1 * m2;
+    {
+        int num_threads = std::max(d, omp_get_max_threads());
+        MatrixRXd compressed = MatrixRXd::Zero(d, b);
+        MatrixRXd pas = MatrixRXd::Zero(num_threads, b);
+        MatrixRXd pbs = MatrixRXd::Zero(num_threads, b);
+        MatrixRXcd ps = MatrixRXcd::Zero(d, b);
+        MatrixRXcd out1(num_threads, b / 2 + 1);
+        MatrixRXcd out2(num_threads, b / 2 + 1);
+        fft_struct fft1 = init_fft(b, pas.data(), out1.data());
+        fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
+        ifft_struct ifft1 = init_ifft(b, ps.data(), compressed.data());
+
+        BENCHMARK("Parallel Compress - Threads") {
+            bompressed_product_par_threaded(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft1);
+        };
+
+        clean_fft(fft1);
+        clean_fft(fft2);
+        clean_ifft(ifft1);
+    }
+
+    {
+        int num_threads = std::max(d, omp_get_max_threads());
+        MatrixRXd compressed3 = MatrixRXd::Zero(d, b);
+        MatrixRXd pas3 = MatrixRXd::Zero(num_threads, b);
+        MatrixRXd pbs3 = MatrixRXd::Zero(num_threads, b);
+        MatrixRXcd ps3 = MatrixRXcd::Zero(d, b);
+        MatrixRXcd out13(d * n, b / 2 + 1);
+        MatrixRXcd out23(d * n, b / 2 + 1);
+        fft_struct fft13 = init_fft(b, pas3.data(), out13.data());
+        fft_struct fft23 = init_fft(b, pbs3.data(), out23.data());
+        ifft_struct ifft3 = init_ifft(b, ps3.data(), compressed3.data());
+
+        BENCHMARK("Parallel Compress - Matti (combi with threads)") {
+            bompressed_product_par_large_threaded(m1, m2, b, d, hash, compressed3, pas3, pbs3, ps3, out13, out23, fft13, fft23, ifft3);
+        };
+
+        clean_fft(fft13);
+        clean_fft(fft23);
+        clean_ifft(ifft3);
+    }
+
+    {
+        MatrixRXd compressed4 = MatrixRXd::Zero(d, b);
+        MatrixRXd pas4 = MatrixRXd::Zero(d * n, b);
+        MatrixRXd pbs4 = MatrixRXd::Zero(d * n, b);
+        MatrixRXcd ps4 = MatrixRXcd::Zero(d, b);
+        MatrixRXcd out14(d * n, b / 2 + 1);
+        MatrixRXcd out24(d * n, b / 2 + 1);
+        fft_struct fft14 = init_fft(b, pas4.data(), out14.data());
+        fft_struct fft24 = init_fft(b, pbs4.data(), out24.data());
+        ifft_struct ifft4 = init_ifft(b, ps4.data(), compressed4.data());
+
+        BENCHMARK("Parallel Compress - Matti (collapse)") {
+            bompressed_product_par_large(m1, m2, b, d, hash, compressed4, pas4, pbs4, ps4, out14, out24, fft14, fft24, ifft4);
+        };
+
+        clean_fft(fft14);
+        clean_fft(fft24);
+        clean_ifft(ifft4);
+    }
+    
+    // BENCHMARK("Parallel Compress") {
+    //     bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
     // };
 
-    BENCHMARK("Parallel Compress") {
-        bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
-    };
-    
-    BENCHMARK("Parallel Decompress") {
-        debompress_matrix_par(compressed, n, b, d, hash, result, xt);
-    };
+    // BENCHMARK("Parallel Decompress") {
+    //     debompress_matrix_par(compressed, n, b, d, hash, result, xt);
+    // };
 
-    clean_fft(fft1);
-    clean_fft(fft2);
-    clean_ifft(ifft);
     // BENCHMARK("Sequential Compress") {
     //     compressed1 = compressed_product(m1, m2, b, d, hash);
     // };

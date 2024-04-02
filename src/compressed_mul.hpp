@@ -18,8 +18,6 @@
 #include <iostream>
 #include <vector>
 
-
-
 /*
 MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p, MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft
 */
@@ -164,8 +162,7 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int
                             MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
                             MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
     int n = m1.rows();
-    
-    Eigen::Block<MatrixRXcd> p_short = p.block(0, 0, d, b / 2 + 1);
+    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
@@ -186,6 +183,188 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int
 
             p_short.row(t).array() += out1.row(t).array() * out2.row(t).array();
         }
+    }
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        ifft(ifft1, t * b, t * b);
+    }
+
+    compressed /= b;
+}
+
+template <typename T>
+void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                     MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                                     MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+    int n = m1.rows();
+    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
+
+#pragma omp parallel
+    {
+        int thread_num = omp_get_thread_num();
+        int in_offset = thread_num * b;
+        int out_offset = thread_num * (b / 2 + 1);
+#pragma omp for schedule(dynamic) collapse(2)
+        for (int t = 0; t < d; t++) {
+            for (int k = 0; k < n; k++) {
+                pas.row(thread_num).setZero();
+                pbs.row(thread_num).setZero();
+
+                for (int i = 0; i < n; i++) {
+                    // ? Can we get rid of this static_cast? <--- bozo
+                    pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                    pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                fft(fft2, in_offset, out_offset);
+
+                // Complex* arr = p_short.row(t).array();
+                // #pragma omp critical
+                p_short.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
+            }
+        }
+    }
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        ifft(ifft1, t * b, t * b);
+    }
+
+    compressed /= b;
+}
+
+// #pragma omp declare reduction(\
+//     add_block : )
+
+// #pragma omp declare reduction(\
+//     add_arrays : Eigen::ArrayXd : \
+//     omp_out += omp_in \
+//   ) initializer(omp_priv = Eigen::ArrayXd::Zero(p_short.row(t).array().size()))
+
+template <typename T>
+void bompressed_product_par_threaded2(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                      MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                                      MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+    int n = m1.rows();
+    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
+
+#pragma omp parallel
+    {
+        int thread_num = omp_get_thread_num();
+        int in_offset = thread_num * b;
+        int out_offset = thread_num * (b / 2 + 1);
+#pragma omp for schedule(dynamic) collapse(2)
+        for (int t = 0; t < d; t++) {
+            for (int k = 0; k < n; k++) {
+                pas.row(thread_num).setZero();
+                pbs.row(thread_num).setZero();
+
+                for (int i = 0; i < n; i++) {
+                    // ? Can we get rid of this static_cast? <--- bozo
+                    pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                    pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                fft(fft2, in_offset, out_offset);
+
+                // Complex* arr = p_short.row(t).array();
+                // #pragma omp critical
+                p_short.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
+            }
+        }
+    }
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        ifft(ifft1, t * b, t * b);
+    }
+
+    compressed /= b;
+}
+
+template <typename T>
+void bompressed_product_par_large_threaded(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                           MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                                           MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+    int n = m1.rows();
+
+#pragma omp parallel
+    {
+        int thread_num = omp_get_thread_num();
+        int in_offset = thread_num * b;
+#pragma omp for collapse(2)
+        for (int k = 0; k < n; k++) {
+            for (int t = 0; t < d; t++) {
+                pas.row(thread_num).setZero();
+                pbs.row(thread_num).setZero();
+                int out_offset = (k + t * n) * (b / 2 + 1);
+
+                for (int i = 0; i < n; i++) {
+                    // ? Can we get rid of this static_cast? <--- bozo
+                    pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                    pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                fft(fft2, in_offset, out_offset);
+            }
+        }
+    }
+
+    out1 = out1.cwiseProduct(out2);
+    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        p_short.row(t) = out1.middleRows(t * n, n).colwise().sum().array();
+    }
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        ifft(ifft1, t * b, t * b);
+    }
+
+    compressed /= b;
+}
+
+template <typename T>
+void bompressed_product_par_large(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                  MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                                  MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+    int n = m1.rows();
+
+#pragma omp parallel
+    {
+        int index;
+        int in_offset;
+        int out_offset;
+#pragma omp for collapse(2)
+        for (int t = 0; t < d; t++) {
+            for (int k = 0; k < n; k++) {
+                index = k + t * n;
+                in_offset = index * b;
+                out_offset = index * (b / 2 + 1);
+
+                for (int i = 0; i < n; i++) {
+                    // ? Can we get rid of this static_cast? <--- bozo
+                    pas(index, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                    pbs(index, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                fft(fft2, in_offset, out_offset);
+            }
+        }
+    }
+
+    out1 = out1.cwiseProduct(out2);
+    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
+
+    for (int t = 0; t < d; t++) {
+        p_short.row(t) = out1.middleRows(t * n, n).colwise().sum().array();
     }
 
 #pragma omp parallel for
