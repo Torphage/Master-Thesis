@@ -1,6 +1,6 @@
 
 #include "../include/cxxopts.hpp"
-#include "../src/compressed_mul.hpp"
+#include "../src/utils.hpp"
 
 #include <iostream>
 #include <random>
