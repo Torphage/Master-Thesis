@@ -23,7 +23,7 @@ set(BENCHMARK_ENABLE_TESTING NO)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${M_ARCH}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(BLAS_PROVIDED ON)
 
@@ -43,7 +43,12 @@ elseif(USE_MKL)
 elseif(USE_AOCL)
   message("AMD AOCL selected")
   set(CMAKE_CXX_FLAGS_RELEASE "-D USE_AOCL ${CMAKE_CXX_FLAGS_RELEASE}")
-  set(BLA_VENDER AOCL)
+  set(BLA_VENDER AOCL_mt)
+  if(DEFINED ENV{AOCL_ROOT})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{AOCL_ROOT}/include -L$ENV{AOCL_ROOT}/lib -lfftw3 -lblis-mt")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc/include -L/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc/lib -lfftw3 -lblis-mt")
+  endif(DEFINED ENV{AOCL_ROOT})
 elseif(USE_OPENBLAS)
   message("OpenBLAS selected")
   set(CMAKE_CXX_FLAGS_RELEASE "-D USE_OPENBLAS ${CMAKE_CXX_FLAGS_RELEASE}")
@@ -51,7 +56,6 @@ elseif(USE_OPENBLAS)
 else()
   set(BLAS_PROVIDED OFF)
 endif()
-
 
 enable_testing()
 
@@ -65,10 +69,15 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Catch2 3 REQUIRED)
 find_package(benchmark REQUIRED)
 find_package(OpenMP REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
-include_directories(PkgConfig::FFTW)
 
+if(NOT USE_AOCL)
+  find_package(PkgConfig REQUIRED)
+  pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
+  include_directories(PkgConfig::FFTW)
+  set(fftwVar PkgConfig::FFTW)
+else()
+  set(fftwVar fftw3)
+endif()
 
 ############    temp    ############
 
@@ -89,16 +98,26 @@ endif(BLAS_FOUND)
 
 ############ Benchmarks ############
 
-file(GLOB_RECURSE BENCHMARKS benchmark/benchmark_compressed_mul.cpp benchmark/benchmark_compressed_mul.hpp src/*.cpp src/*.hpp include/*.hpp)
-FOREACH(item ${BENCHMARKS})
-  IF(${item} MATCHES "src/main.cpp")
-    LIST(REMOVE_ITEM BENCHMARKS ${item})
-  ENDIF(${item} MATCHES "src/main.cpp")
-ENDFOREACH(item)
-add_executable(benchmarks ${BENCHMARKS})
+# file(GLOB_RECURSE BENCHMARKS benchmark/benchmark_compressed_mul.cpp benchmark/benchmark_compressed_mul.hpp src/*.cpp src/*.hpp include/*.hpp)
+# FOREACH(item ${BENCHMARKS})
+#   IF(${item} MATCHES "src/main.cpp")
+#     LIST(REMOVE_ITEM BENCHMARKS ${item})
+#   ENDIF(${item} MATCHES "src/main.cpp")
+# ENDFOREACH(item)
+# add_executable(benchmarks ${BENCHMARKS})
+
+add_executable(benchmarks 
+        benchmark/benchmark_compressed_mul.cpp 
+        benchmark/benchmark_compressed_mul.hpp
+        src/fft.cpp 
+        src/fft.hpp
+        src/hashing.hpp
+        src/utils.cpp                 
+        src/utils.hpp                 
+        include/cxxopts.hpp)
 
 target_link_libraries(benchmarks Eigen3::Eigen)
-target_link_libraries(benchmarks PkgConfig::FFTW)
+target_link_libraries(benchmarks ${fftwVar})
 target_link_libraries(benchmarks benchmark::benchmark)
 
 if(OpenMP_FOUND)
@@ -113,16 +132,14 @@ endif(BLAS_FOUND)
 
 ############ Input generator ############
 
-file(GLOB_RECURSE INPUT_GENERATOR benchmark/input_generator.cpp src/*.cpp src/*.hpp include/*.hpp)
-FOREACH(item ${INPUT_GENERATOR})
-  IF(${item} MATCHES "src/main.cpp")
-    LIST(REMOVE_ITEM INPUT_GENERATOR ${item})
-  ENDIF(${item} MATCHES "src/main.cpp")
-ENDFOREACH(item)
-add_executable(input_generator ${INPUT_GENERATOR})
+add_executable(input_generator 
+        benchmark/input_generator.cpp 
+        src/utils.cpp 
+        src/utils.hpp                 
+        include/cxxopts.hpp)
 
 target_link_libraries(input_generator Eigen3::Eigen)
-target_link_libraries(input_generator PkgConfig::FFTW)
+target_link_libraries(input_generator ${fftwVar})
 
 if(OpenMP_FOUND)
 message("input_generator: OpenMP found")
@@ -139,10 +156,15 @@ endif(BLAS_FOUND)
 ############ Main program ############
 
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp include/*.hpp)
+FOREACH(item ${SOURCES})
+  IF(${item} MATCHES "src/variance.cpp")
+    LIST(REMOVE_ITEM SOURCES ${item})
+  ENDIF(${item} MATCHES "src/variance.cpp")
+ENDFOREACH(item)
 add_executable(app ${SOURCES})
 
 target_link_libraries(app Eigen3::Eigen)
-target_link_libraries(app PkgConfig::FFTW)
+target_link_libraries(app ${fftwVar})
 
 if(OpenMP_FOUND)
   message("app: OpenMP found")
@@ -169,7 +191,7 @@ add_executable(tests ${TESTS})
 # These tests can use the Catch2-provided main
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(tests PUBLIC Eigen3::Eigen)
-target_link_libraries(tests PUBLIC PkgConfig::FFTW)
+target_link_libraries(tests PUBLIC ${fftwVar})
 
 if(OpenMP_FOUND)
   target_link_libraries(tests PUBLIC OpenMP::OpenMP_CXX)
@@ -183,18 +205,18 @@ endif(BLAS_FOUND)
 ############ BLAS CONFIG ############
 
 if(BLAS_PROVIDED)
-  if (NOT USE_MKL)
-    target_compile_definitions(app PUBLIC EIGEN_USE_BLAS)
-    target_compile_definitions(tests PUBLIC EIGEN_USE_BLAS)
-    target_compile_definitions(benchmarks PUBLIC EIGEN_USE_BLAS)
-    target_compile_definitions(input_generator PUBLIC EIGEN_USE_BLAS)
-    target_compile_definitions(temp PUBLIC EIGEN_USE_BLAS)
-  elseif(USE_MKL)
+  if(USE_MKL)
     target_compile_definitions(app PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(tests PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(benchmarks PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(input_generator PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(temp PUBLIC EIGEN_USE_MKL_ALL)
+  elseif (NOT USE_MKL)
+    target_compile_definitions(app PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(tests PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(benchmarks PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(input_generator PUBLIC EIGEN_USE_BLAS)
+    target_compile_definitions(temp PUBLIC EIGEN_USE_BLAS)
   endif()
 endif(BLAS_PROVIDED)
 
