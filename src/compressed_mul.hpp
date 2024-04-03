@@ -235,6 +235,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
     compressed /= b;
 }
 
+/*
 // #pragma omp declare reduction(\
 //     add_block : )
 
@@ -242,6 +243,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
 //     add_arrays : Eigen::ArrayXd : \
 //     omp_out += omp_in \
 //   ) initializer(omp_priv = Eigen::ArrayXd::Zero(p_short.row(t).array().size()))
+ */
 
 template <typename T>
 void bompressed_product_par_threaded2(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,

@@ -177,9 +177,9 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     unsigned int seed = std::random_device{}();
     std::mt19937_64 rng(seed);
 
-    int n = 2000;
-    int b = 2000;
-    int d = 8;
+    int n = 1000;
+    int b = 1000;
+    int d = 5;
     double density = 0.001;
 
     {
@@ -206,7 +206,7 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
     FullyRandomHash<uint64_t> hash(n, b, d, seed);
     // MultiplyShiftHash<uint32_t, uint16_t> hash(d, seed);
     // TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
-    
+
     {
         // MatrixRXd result = MatrixRXd::Zero(n, n);
 
@@ -296,7 +296,7 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
         clean_fft(fft24);
         clean_ifft(ifft4);
     }
-    
+
     // BENCHMARK("Parallel Compress") {
     //     bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
     // };
