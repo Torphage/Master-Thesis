@@ -1,6 +1,6 @@
 #include "benchmark_compressed_mul.hpp"
 
-#include "../include/cxxopts.hpp"
+#include "../include/rapidcsv.h"
 #include "../src/compressed_mul.hpp"
 #include "../src/hashing.hpp"
 
@@ -9,139 +9,130 @@
 #include <iostream>
 #include <random>
 
+static void eigen(MatrixRXd& m1, MatrixRXd& m2) {
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark([=]() {    return m1.lazyProduct(m2); });
 
-
-static void BM_eigen(benchmark::State& state, const MatrixRXd& m1, const MatrixRXd& m2) {
-    MatrixRXd result;
-    for (auto _ : state) {
-        result = m1 * m2;
-    };
+    benchmark_timer::print_benchmark("Eigen", 0, 0, 0, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
 }
 
-int main(int argc, char** argv) {
-    cxxopts::Options options("parameters", "Parameters to test with");
-
-    options.allow_unrecognised_options();
-
-    // clang-format off
-    options.add_options()
-        ("n,size", "Size", cxxopts::value<int>())
-        ("b,bb", "b", cxxopts::value<std::vector<int64_t>>())
-        ("d,dd", "d", cxxopts::value<std::vector<int64_t>>())
-        ("p,density", "Density", cxxopts::value<double>())
-        ("s,seed", "The random seed", cxxopts::value<unsigned int>())
-        ("h,debug", "Enable debugging", cxxopts::value<bool>())    
-        ("full", "Enable fully random", cxxopts::value<bool>())
-        ("mul", "Enable multiply-shift", cxxopts::value<bool>())
-        ("tab", "Enable tabulation", cxxopts::value<bool>())
-        ("thread_count", "Number of threads to use", cxxopts::value<int>())
-        // ("bench", "What benchmarks to run", cxxopts::value<std::vector<std::string>>())
-    ;
-    // clang-format on
-
-    options.parse_positional({"n", "density", "seed"});
-    auto result = options.parse(argc, argv);
-
-    if (result.count("help")) {
-        std::cout << "TODO: some help" << std::endl;
-        exit(0);
-    }
-
-    int thread_count = result["thread_count"].as<int>();
-    omp_set_num_threads(thread_count);
-
-    int n = result["n"].as<int>();
-    std::vector<int64_t> bs = result["bb"].as<std::vector<int64_t>>();
-    std::vector<int64_t> ds = result["dd"].as<std::vector<int64_t>>();
-
-    double density;
-    if (result.count("density")) {
-        density = result["density"].as<double>();
-    } else {
-        density = 5.0 / n;  // Might need to be adjusted
-    }
-
-    bool full = result["full"].as<bool>();
-    bool mul = result["mul"].as<bool>();
-    bool tab = result["tab"].as<bool>();
-
-    unsigned long seed;
-    if (result.count("seed")) {
-        seed = result["seed"].as<unsigned int>();
-    } else {
-        seed = std::random_device{}();
-    }
-    std::mt19937_64 rng(seed);
-
-
-    // Get the input matrices from the text stream
-    MatrixRXd m1(n, n), m2(n, n);
-    std::cin.read(reinterpret_cast<char*>(m1.data()), n * n * sizeof(double));
-    std::cin.read(reinterpret_cast<char*>(m2.data()), n * n * sizeof(double));
-
+int main() {
     std::cout << "----- Settings -----" << std::endl;
-    std::cout << "n = " << n << std::endl;
-    std::cout << "density = " << density << std::endl;
 #ifdef USE_MKL
     std::cout << "Backend = MKL" << std::endl;
 #elif USE_ACCELERATE
     std::cout << "Backend = ACCELERATE" << std::endl;
+#elif USE_AOCL
+    std::cout << "Backend = AOCL" << std::endl;
 #else
     std::cout << "Backend = FFTW" << std::endl;
 #endif
-    std::cout << "Seed = " << seed << std::endl;
-    std::cout << "----- Settings -----" << std::endl;
+    std::cout << "----- Settings -----" << std::endl
+              << std::endl;
 
-    // Register the parameterized benchmark with the input values
+    benchmark_timer::print_header();
 
-    benchmark::RegisterBenchmark("Eigen", BM_eigen, m1, m2)
-        ->Iterations(100)
-        ->Repetitions(10)
-        ->DisplayAggregatesOnly(true);
-    // benchmark::RegisterBenchmark("BM_block", BM_block) -> Args({b, d});
+    rapidcsv::Document doc("input.csv");
 
-    if (full) {
-        benchmark::RegisterBenchmark("compressed_product_par fully_random", BM_compressed_product_random_par<int>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
-        benchmark::RegisterBenchmark("decompress_matrix_par fully_random", BM_decompress_matrix_random_par<int>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
+    std::vector<int> runs = doc.GetColumn<int>("run");
+    std::vector<std::string> hashes = doc.GetColumn<std::string>("hash");
+    std::vector<std::string> functions = doc.GetColumn<std::string>("function");
+    std::vector<int> ns = doc.GetColumn<int>("n");
+    std::vector<int> bs = doc.GetColumn<int>("b");
+    std::vector<int> ds = doc.GetColumn<int>("d");
+    std::vector<double> densities = doc.GetColumn<double>("density");
+    std::vector<int> matrix_ids = doc.GetColumn<int>("matrix_id");
+    std::vector<unsigned int> matrix_seeds = doc.GetColumn<unsigned int>("matrix_seed");
+    std::vector<int> sampless = doc.GetColumn<int>("samples");
+    std::vector<unsigned int> hash_seeds = doc.GetColumn<unsigned int>("hash_seed");
+
+    int number_of_lines = bs.size();
+
+    std::vector<int> ids;
+    std::vector<MatrixRXd> m1s;
+    std::vector<MatrixRXd> m2s;
+    for (int index = 0; index < number_of_lines; index++) {
+        int run = runs[index];
+        std::string s_hash = hashes[index];
+        std::string s_function = functions[index];
+        int n = ns[index];
+        int b = bs[index];
+        int d = ds[index];
+        double density = densities[index];
+        int matrix_id = matrix_ids[index];
+        int samples = sampless[index];
+        unsigned int hash_seed = hash_seeds[index];
+
+        if (hash_seed == 0) hash_seed = std::random_device{}();
+
+        if (run == 0) continue;
+
+        if (std::find(ids.begin(), ids.end(), matrix_id) == ids.end()) {
+            ids.push_back(matrix_id);
+
+            MatrixRXd temp1(n, n), temp2(n, n);
+            std::cin.read(reinterpret_cast<char*>(temp1.data()), n * n * sizeof(double));
+            std::cin.read(reinterpret_cast<char*>(temp2.data()), n * n * sizeof(double));
+
+            m1s.push_back(temp1);
+            m2s.push_back(temp2);
+        }
+
+        int current_matrix_id = std::find(ids.begin(), ids.end(), matrix_id) - ids.begin();
+
+        MatrixRXd m1 = m1s[current_matrix_id];
+        MatrixRXd m2 = m2s[current_matrix_id];
+
+        if (s_function == "eigen")
+            eigen(m1, m2);
+
+        if (s_hash == "ful" || s_hash == "full" || s_hash == "random" || s_hash == "rng") {
+            FullyRandomHash<int> hash(n, b, d, hash_seed);
+            if (s_function == "compress")
+                compress<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_th" || s_function == "compress_threaded")
+                compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
+                compress_large_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large")
+                compress_large<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+            if (s_function == "decompress")
+                decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+            if (s_function == "both")
+                both<FullyRandomHash<int>>(m1, m2, n, b, d, hash);
+        }
+
+        if (s_hash == "mul" || s_hash == "mult" || s_hash == "multiply" || s_hash == "shift") {
+            MultiplyShiftHash<uint32_t, uint16_t> hash(d, hash_seed);
+            if (s_function == "compress")
+                compress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_th" || s_function == "compress_threaded")
+                compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
+                compress_large_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large")
+                compress_large<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+            if (s_function == "decompress")
+                decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+            if (s_function == "both")
+                both<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash);
+        }
+
+        if (s_hash == "tab" || s_hash == "tabulation") {
+            TabulationHash<uint32_t, uint32_t, 8> hash(d, hash_seed);
+            if (s_function == "compress")
+                compress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_th" || s_function == "compress_threaded")
+                compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
+                compress_large_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+            if (s_function == "compress_large")
+                compress_large<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+            if (s_function == "decompress")
+                decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+            if (s_function == "both")
+                both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash);
+        }
     }
-
-    if (mul) {
-        benchmark::RegisterBenchmark("compressed_product_par multiply-shift", BM_compressed_product_multiply_shift_par<uint32_t, uint16_t>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
-        benchmark::RegisterBenchmark("decompress_matrix_par multiply-shift", BM_decompress_matrix_multiply_shift_par<uint32_t, uint16_t>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
-    }
-
-    if (tab) {
-        benchmark::RegisterBenchmark("compressed_product_par tabulation", BM_compressed_product_tabulation_par<uint32_t, uint32_t, 8>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
-        benchmark::RegisterBenchmark("decompress_matrix_par tabulation", BM_decompress_matrix_tabulation_par<uint32_t, uint32_t, 8>, m1, m2, seed)
-            ->ArgsProduct({bs, ds})
-            ->Iterations(100)
-            ->Repetitions(10)
-            ->DisplayAggregatesOnly(true);
-    }
-
-    // Initialize Google Benchmark and run specified benchmarks
-    benchmark::Initialize(&argc, argv);
-    benchmark::RunSpecifiedBenchmarks();
 
     return 0;
 }
