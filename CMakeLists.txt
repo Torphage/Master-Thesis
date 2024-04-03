@@ -46,7 +46,7 @@ elseif(USE_AOCL)
   set(BLA_VENDER AOCL_mt)
   if(DEFINED ENV{AOCL_ROOT})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{AOCL_ROOT}/include -L$ENV{AOCL_ROOT}/lib -lfftw3 -lblis-mt")
-  else()
+  elseif(EXISTS "/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc/include -L/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc/lib -lfftw3 -lblis-mt")
   endif(DEFINED ENV{AOCL_ROOT})
 elseif(USE_OPENBLAS)
@@ -112,9 +112,11 @@ add_executable(benchmarks
         src/fft.cpp 
         src/fft.hpp
         src/hashing.hpp
+        src/benchmark_timer.cpp                 
+        src/benchmark_timer.hpp                 
         src/utils.cpp                 
         src/utils.hpp                 
-        include/cxxopts.hpp)
+        include/rapidcsv.h)
 
 target_link_libraries(benchmarks Eigen3::Eigen)
 target_link_libraries(benchmarks ${fftwVar})
@@ -136,7 +138,7 @@ add_executable(input_generator
         benchmark/input_generator.cpp 
         src/utils.cpp 
         src/utils.hpp                 
-        include/cxxopts.hpp)
+        include/rapidcsv.h)
 
 target_link_libraries(input_generator Eigen3::Eigen)
 target_link_libraries(input_generator ${fftwVar})
