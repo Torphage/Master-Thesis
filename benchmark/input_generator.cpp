@@ -10,25 +10,17 @@ int main() {
     rapidcsv::Document doc("input.csv");
 
     std::vector<int> runs = doc.GetColumn<int>("run");
-    std::vector<std::string> hashes = doc.GetColumn<std::string>("hash");
-    std::vector<std::string> functions = doc.GetColumn<std::string>("function");
     std::vector<int> ns = doc.GetColumn<int>("n");
-    std::vector<int> bs = doc.GetColumn<int>("b");
-    std::vector<int> ds = doc.GetColumn<int>("d");
     std::vector<double> densities = doc.GetColumn<double>("density");
     std::vector<int> matrix_ids = doc.GetColumn<int>("matrix_id");
     std::vector<unsigned int> matrix_seeds = doc.GetColumn<unsigned int>("matrix_seed");
 
-    int number_of_lines = bs.size();
+    int number_of_lines = ns.size();
 
     std::vector<int> ids;
     for (int index = 0; index < number_of_lines; index++) {
         int run = runs[index];
-        std::string s_hash = hashes[index];
-        std::string s_function = functions[index];
         int n = ns[index];
-        int b = bs[index];
-        int d = ds[index];
         double density = densities[index];
         int matrix_id = matrix_ids[index];
         unsigned int matrix_seed = matrix_seeds[index];

@@ -11,9 +11,6 @@
 
 namespace benchmark_timer {
 
-void print_header();
-void print_benchmark(const std::string& name, int n, int b, int d, int samples, double median, double mean, double lowMean, double highMean, double stdDev, double lowStdDev, double highStdDev);
-
 struct benchmarkinfo {
     std::vector<double> vals;
     double meanval;
@@ -25,6 +22,9 @@ struct benchmarkinfo {
     double lowstddevval;
     double highstddevval;
 };
+
+void print_header();
+void print_benchmark(const std::string& name, int n, int b, int d, int samples, benchmarkinfo info);
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -132,13 +132,12 @@ static double time(Lambda&& fn, Args&&... args) {
 }
 
 template <class Lambda, class... Args>
-static benchmarkinfo benchmark(Lambda&& fn, Args&&... args) {
-    int repetitions = 100;
-    int i = repetitions;
-    std::vector<double> vec(repetitions);
+static benchmarkinfo benchmark(const int samples, Lambda&& fn, Args&&... args) {
+    int i = samples + 1;
+    std::vector<double> vec(samples);
 
     while (i--) {
-        vec[repetitions - i] = time(fn, args...);
+        vec[samples - i] = time(fn, args...);
     }
 
     // std::cout << median(vec) << std::endl;

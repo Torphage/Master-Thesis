@@ -15,7 +15,7 @@
 #include <string>
 
 template <class T>
-static void compress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void compress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
@@ -26,17 +26,17 @@ static void compress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash)
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(bompressed_product_par<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, bompressed_product_par<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Original", n, b, d, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
+    benchmark_timer::print_benchmark("Compress - Original", n, b, d, samples, info);
 }
 
 template <class T>
-static void compress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void compress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     int num_threads = std::max(d, omp_get_max_threads());
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(num_threads, b);
@@ -48,17 +48,17 @@ static void compress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d,
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(bompressed_product_par_threaded<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, bompressed_product_par_threaded<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Threaded", n, b, d, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
+    benchmark_timer::print_benchmark("Compress - Threaded", n, b, d, samples, info);
 }
 
 template <class T>
-static void compress_large_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void compress_large_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     int num_threads = std::max(d, omp_get_max_threads());
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(num_threads, b);
@@ -70,17 +70,17 @@ static void compress_large_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, 
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(bompressed_product_par_large_threaded<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, bompressed_product_par_large_threaded<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Large Threaded", n, b, d, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
+    benchmark_timer::print_benchmark("Compress - Large Threaded", n, b, d, samples, info);
 }
 
 template <class T>
-static void compress_large(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void compress_large(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(n * d, b);
     MatrixRXd pbs = MatrixRXd::Zero(n * d, b);
@@ -91,17 +91,17 @@ static void compress_large(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T&
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(bompressed_product_par_large<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, bompressed_product_par_large<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Large", n, b, d, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
+    benchmark_timer::print_benchmark("Compress - Large", n, b, d, samples, info);
 }
 
 template <class T>
-static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
@@ -116,17 +116,17 @@ static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& has
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
     bompressed_product_par<T>(m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Decompress - Original", n, b, d, 100, info.medianval, info.meanval, info.lowmeanval, info.highmeanval, info.stddevval, info.lowstddevval, info.lowstddevval);
+    benchmark_timer::print_benchmark("Decompress - Original", n, b, d, samples, info);
 }
 
 template <class T>
-static void both(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
+static void both(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, const int samples) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
@@ -140,15 +140,15 @@ static void both(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash) {
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
-    benchmark_timer::benchmarkinfo info1 = benchmark_timer::benchmark(bompressed_product_par<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
-    benchmark_timer::benchmarkinfo info2 = benchmark_timer::benchmark(debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
+    benchmark_timer::benchmarkinfo info1 = benchmark_timer::benchmark(samples, bompressed_product_par<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmarkinfo info2 = benchmark_timer::benchmark(samples, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
 
     clean_fft(fft1);
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Original", n, b, d, 100, info1.medianval, info1.meanval, info1.lowmeanval, info1.highmeanval, info1.stddevval, info1.lowstddevval, info1.lowstddevval);
-    benchmark_timer::print_benchmark("Decompress - Original", n, b, d, 100, info2.medianval, info2.meanval, info2.lowmeanval, info2.highmeanval, info2.stddevval, info2.lowstddevval, info2.lowstddevval);
+    benchmark_timer::print_benchmark("Compress - Original", n, b, d, samples, info1);
+    benchmark_timer::print_benchmark("Decompress - Original", n, b, d, samples, info2);
 }
 
 #endif

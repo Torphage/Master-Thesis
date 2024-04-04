@@ -338,12 +338,12 @@ void bompressed_product_par_large(const MatrixRXd& m1, const MatrixRXd& m2, int 
                                   MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
     int n = m1.rows();
 
-#pragma omp parallel
-    {
+// #pragma omp parallel
+//     {
         int index;
         int in_offset;
         int out_offset;
-#pragma omp for collapse(2)
+// #pragma omp for collapse(2)
         for (int t = 0; t < d; t++) {
             for (int k = 0; k < n; k++) {
                 index = k + t * n;
@@ -360,7 +360,7 @@ void bompressed_product_par_large(const MatrixRXd& m1, const MatrixRXd& m2, int 
                 fft(fft2, in_offset, out_offset);
             }
         }
-    }
+    // }
 
     out1 = out1.cwiseProduct(out2);
     Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
