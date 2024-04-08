@@ -10,7 +10,7 @@
 #include <random>
 
 static void eigen(MatrixRXd& m1, MatrixRXd& m2, benchmark_timer::pre_run_info run_info) {
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(run_info, [=]() { return m1 * m2; });
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(run_info, [=]() { return (m1 * m2).eval(); });
 
     benchmark_timer::print_benchmark("Eigen", 0, 0, 0, run_info, info);
 }
@@ -103,6 +103,8 @@ int main() {
                 compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
                 compress_large_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
+                compress_large_threaded_better<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
                 compress_large<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
@@ -119,6 +121,8 @@ int main() {
                 compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
                 compress_large_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
+                compress_large_threaded_better<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
                 compress_large<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
@@ -135,6 +139,8 @@ int main() {
                 compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
                 compress_large_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
+                compress_large_threaded_better<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
                 compress_large<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
