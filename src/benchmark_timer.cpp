@@ -70,11 +70,12 @@ std::stringstream suitable_prefix(double num) {
 }
 
 void print_benchmark(const std::string& name, int n, int b, int d, benchmark_timer::pre_run_info run_info, benchmarkinfo info) {
-    if (name.size() > 37)
+    if (name.size() > 37) {
         std::cout << std::left << std::setw(38) << name << std::endl
                   << std::left << std::setw(38) << "";
-    else
+    } else {
         std::cout << std::left << std::setw(38) << name;
+    }
     std::cout << std::right << std::setw(15) << run_info.samples;
     std::cout << std::right << std::setw(15) << suitable_prefix(info.medianval).str() << std::endl;
 

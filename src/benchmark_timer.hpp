@@ -151,7 +151,6 @@ static benchmarkinfo benchmark(benchmark_timer::pre_run_info run_info, Lambda&& 
         i--;
     }
 
-    // std::cout << median(vec) << std::endl;
     return {
         vec,
         mean(vec),

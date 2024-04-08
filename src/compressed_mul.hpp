@@ -181,7 +181,6 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int b, int
             fft(fft2, in_offset, out_offset);
 
             p.row(t).array() += out1.row(t).array() * out2.row(t).array();
-            std::cout << t << std::endl;
         }
     }
 
@@ -198,7 +197,6 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
                                      MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
                                      MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
     int n = m1.rows();
-    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
 
 #pragma omp parallel
     {
@@ -222,7 +220,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
 
                 // Complex* arr = p_short.row(t).array();
                 // #pragma omp critical
-                p_short.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
+                p.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
             }
         }
     }
@@ -250,7 +248,6 @@ void bompressed_product_par_threaded2(const MatrixRXd& m1, const MatrixRXd& m2, 
                                       MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
                                       MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
     int n = m1.rows();
-    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
 
 #pragma omp parallel
     {
@@ -274,7 +271,7 @@ void bompressed_product_par_threaded2(const MatrixRXd& m1, const MatrixRXd& m2, 
 
                 // Complex* arr = p_short.row(t).array();
                 // #pragma omp critical
-                p_short.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
+                p.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
             }
         }
     }
@@ -364,10 +361,9 @@ void bompressed_product_par_large(const MatrixRXd& m1, const MatrixRXd& m2, int 
     // }
 
     out1 = out1.cwiseProduct(out2);
-    Eigen::Block<MatrixRXcd> p_short = p.leftCols(b / 2 + 1);
 
     for (int t = 0; t < d; t++) {
-        p_short.row(t) = out1.middleRows(t * n, n).colwise().sum().array();
+        p.row(t) = out1.middleRows(t * n, n).colwise().sum().array();
     }
 
 #pragma omp parallel for

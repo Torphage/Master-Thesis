@@ -45,7 +45,7 @@ int main() {
     std::vector<unsigned int> hash_seeds = doc.GetColumn<unsigned int>("hash_seed");
     std::vector<int> sampless = doc.GetColumn<int>("samples");
     std::vector<int> warmup_iterationss = doc.GetColumn<int>("warmup_iterations");
-    std::vector<int> warmup_times = doc.GetColumn<int>("warmup_time");
+    // std::vector<int> warmup_times = doc.GetColumn<int>("warmup_time");
 
     int number_of_lines = bs.size();
 
@@ -64,12 +64,12 @@ int main() {
         unsigned int hash_seed = hash_seeds[index];
         int samples = sampless[index];
         int warmup_iterations = warmup_iterationss[index];
-        int warmup_time = warmup_times[index];
+        // int warmup_time = warmup_times[index];
 
         benchmark_timer::pre_run_info run_info = {
             samples,
             warmup_iterations,
-            warmup_time,
+            0,
         };
 
         if (hash_seed == 0) hash_seed = std::random_device{}();
