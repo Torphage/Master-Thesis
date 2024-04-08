@@ -2,6 +2,8 @@
 #ifndef BENCHMARK_TIMER_HPP
 #define BENCHMARK_TIMER_HPP
 
+#include "utils.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <numeric>
@@ -10,6 +12,12 @@
 #include <iostream>
 
 namespace benchmark_timer {
+
+struct pre_run_info {
+    int samples;
+    int warmup_iterations;
+    int warmup_time;
+};
 
 struct benchmarkinfo {
     std::vector<double> vals;
@@ -24,7 +32,7 @@ struct benchmarkinfo {
 };
 
 void print_header();
-void print_benchmark(const std::string& name, int n, int b, int d, int samples, benchmarkinfo info);
+void print_benchmark(const std::string& name, int n, int b, int d, pre_run_info run_info, benchmarkinfo info);
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -128,16 +136,19 @@ static double time(Lambda&& fn) {
 template <class Lambda, class... Args>
 static double time(Lambda&& fn, Args&&... args) {
     return time(
-        [=]() mutable { fn(args...); });
+        [=]() mutable { return fn(args...); });
 }
 
 template <class Lambda, class... Args>
-static benchmarkinfo benchmark(const int samples, Lambda&& fn, Args&&... args) {
-    int i = samples + 1;
-    std::vector<double> vec(samples);
+static benchmarkinfo benchmark(benchmark_timer::pre_run_info run_info, Lambda&& fn, Args&&... args) {
+    int i = run_info.samples + run_info.warmup_iterations;
+    std::vector<double> vec(run_info.samples);
 
-    while (i--) {
-        vec[samples - i] = time(fn, args...);
+    while (i) {
+        if (i < run_info.samples) {
+            vec[run_info.samples - i] = time(fn, args...);
+        }
+        i--;
     }
 
     // std::cout << median(vec) << std::endl;

@@ -9,10 +9,10 @@
 #include <iostream>
 #include <random>
 
-static void eigen(MatrixRXd& m1, MatrixRXd& m2, const int samples) {
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(samples, [=]() { return m1 * m2; });
+static void eigen(MatrixRXd& m1, MatrixRXd& m2, benchmark_timer::pre_run_info run_info) {
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(run_info, [=]() { return m1 * m2; });
 
-    benchmark_timer::print_benchmark("Eigen", 0, 0, 0, samples, info);
+    benchmark_timer::print_benchmark("Eigen", 0, 0, 0, run_info, info);
 }
 
 int main() {
@@ -42,8 +42,10 @@ int main() {
     std::vector<double> densities = doc.GetColumn<double>("density");
     std::vector<int> matrix_ids = doc.GetColumn<int>("matrix_id");
     std::vector<unsigned int> matrix_seeds = doc.GetColumn<unsigned int>("matrix_seed");
-    std::vector<int> sampless = doc.GetColumn<int>("samples");
     std::vector<unsigned int> hash_seeds = doc.GetColumn<unsigned int>("hash_seed");
+    std::vector<int> sampless = doc.GetColumn<int>("samples");
+    std::vector<int> warmup_iterationss = doc.GetColumn<int>("warmup_iterations");
+    std::vector<int> warmup_times = doc.GetColumn<int>("warmup_time");
 
     int number_of_lines = bs.size();
 
@@ -59,8 +61,16 @@ int main() {
         int d = ds[index];
         double density = densities[index];
         int matrix_id = matrix_ids[index];
-        int samples = sampless[index];
         unsigned int hash_seed = hash_seeds[index];
+        int samples = sampless[index];
+        int warmup_iterations = warmup_iterationss[index];
+        int warmup_time = warmup_times[index];
+
+        benchmark_timer::pre_run_info run_info = {
+            samples,
+            warmup_iterations,
+            warmup_time,
+        };
 
         if (hash_seed == 0) hash_seed = std::random_device{}();
 
@@ -83,54 +93,54 @@ int main() {
         MatrixRXd m2 = m2s[current_matrix_id];
 
         if (s_function == "eigen")
-            eigen(m1, m2, samples);
+            eigen(m1, m2, run_info);
 
         if (s_hash == "ful" || s_hash == "full" || s_hash == "random" || s_hash == "rng") {
             FullyRandomHash<int> hash(n, b, d, hash_seed);
             if (s_function == "compress")
-                compress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                compress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
-                compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                compress_large_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
-                compress_large<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                compress_large<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
-                decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
-                both<FullyRandomHash<int>>(m1, m2, n, b, d, hash, samples);
+                both<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
         }
 
         if (s_hash == "mul" || s_hash == "mult" || s_hash == "multiply" || s_hash == "shift") {
             MultiplyShiftHash<uint32_t, uint16_t> hash(d, hash_seed);
             if (s_function == "compress")
-                compress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                compress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
-                compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                compress_large_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
-                compress_large<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                compress_large<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
-                decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
-                both<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, samples);
+                both<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
         }
 
         if (s_hash == "tab" || s_hash == "tabulation") {
             TabulationHash<uint32_t, uint32_t, 8> hash(d, hash_seed);
             if (s_function == "compress")
-                compress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                compress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
-                compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                compress_large_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_large")
-                compress_large<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                compress_large<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
-                decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
-                both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, samples);
+                both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
         }
     }
 

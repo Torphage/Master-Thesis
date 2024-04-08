@@ -77,7 +77,7 @@ fft_struct init_fft_fftw(int b, double* in, Complex* out) {
 }
 
 ifft_struct init_ifft_fftw(int b, Complex* in, double* out) {
-    fftw_complex* in_size = fftw_alloc_complex(b);
+    fftw_complex* in_size = fftw_alloc_complex(b / 2 + 1);
     fftw_plan plan = fftw_plan_dft_c2r_1d(b, in_size, out, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
 
     return {
