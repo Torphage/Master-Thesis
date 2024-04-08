@@ -80,6 +80,28 @@ static void compress_large_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, 
 }
 
 template <class T>
+static void compress_large_threaded_better(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_timer::pre_run_info run_info) {
+    int num_threads = std::max(d, omp_get_max_threads());
+    MatrixRXd compressed = MatrixRXd::Zero(d, b);
+    MatrixRXd pas = MatrixRXd::Zero(num_threads, b);
+    MatrixRXd pbs = MatrixRXd::Zero(num_threads, b);
+    MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out1(n * d, b / 2 + 1);
+    MatrixRXcd out2(n * d, b / 2 + 1);
+    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
+    fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
+    ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
+
+    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(run_info, bompressed_product_par_large_threaded_better<T>, m1, m2, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+
+    clean_fft(fft1);
+    clean_fft(fft2);
+    clean_ifft(ifft1);
+
+    benchmark_timer::print_benchmark("Compress - Large Threaded Better?", n, b, d, run_info, info);
+}
+
+template <class T>
 static void compress_large(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_timer::pre_run_info run_info) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(n * d, b);

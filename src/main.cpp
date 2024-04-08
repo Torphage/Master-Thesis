@@ -22,12 +22,13 @@ int main() {
     // MultiplyShiftHash<uint32_t, uint16_t> hash(d, seed);
     TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
 
+    int thread_count = std::max(d, omp_get_max_threads());
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
-    MatrixRXd pas = MatrixRXd::Zero(d, b);
-    MatrixRXd pbs = MatrixRXd::Zero(d, b);
-    MatrixRXcd ps = MatrixRXcd::Zero(d, b);
-    MatrixRXcd out1(d, b / 2 + 1);
-    MatrixRXcd out2(d, b / 2 + 1);
+    MatrixRXd pas = MatrixRXd::Zero(thread_count, b);
+    MatrixRXd pbs = MatrixRXd::Zero(thread_count, b);
+    MatrixRXcd ps = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out1(n * d, b / 2 + 1);
+    MatrixRXcd out2(n * d, b / 2 + 1);
     fft_struct fft1 = init_fft(b, pas.data(), out1.data());
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft = init_ifft(b, ps.data(), compressed.data());
@@ -35,7 +36,7 @@ int main() {
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
-    bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
+    bompressed_product_par_large_threaded_better(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
 
     debompress_matrix_par(compressed, n, b, d, hash, result, xt);
 

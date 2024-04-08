@@ -218,8 +218,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
                 fft(fft1, in_offset, out_offset);
                 fft(fft2, in_offset, out_offset);
 
-                // Complex* arr = p_short.row(t).array();
-                // #pragma omp critical
+#pragma omp critical
                 p.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
             }
         }
@@ -325,6 +324,55 @@ void bompressed_product_par_large_threaded(const MatrixRXd& m1, const MatrixRXd&
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
         ifft(ifft1, t * halfsize, t * b);
+    }
+
+    compressed /= b;
+}
+
+template <typename T>
+void bompressed_product_par_large_threaded_better(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                                  MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
+                                                  MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+    int n = m1.rows();
+
+#pragma omp parallel
+    {
+        int thread_num = omp_get_thread_num();
+        int in_offset = thread_num * b;
+#pragma omp for schedule(static) collapse(2)
+        for (int t = 0; t < d; t++) {
+            for (int k = 0; k < n; k++) {
+                pas.row(thread_num).setZero();
+                pbs.row(thread_num).setZero();
+                int out_offset = (k + t * n) * (b / 2 + 1);
+
+                for (int i = 0; i < n; i++) {
+                    // ? Can we get rid of this static_cast? <--- bozo
+                    pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                    pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                fft(fft2, in_offset, out_offset);
+
+//                 int l = std::to_string(out_offset).size();
+//                 std::string tmp(8 - l, ' ');
+// #pragma omp critical
+//                 std::cout << thread_num << ":   " << out_offset << tmp << "t=" << t << " k=" << k << std::endl;
+            }
+        }
+    }
+
+    out1 = out1.cwiseProduct(out2);
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        p.row(t) = out1.middleRows(t * n, n).colwise().sum().array();
+    }
+
+#pragma omp parallel for
+    for (int t = 0; t < d; t++) {
+        ifft(ifft1, t * (b / 2 + 1), t * b);
     }
 
     compressed /= b;
