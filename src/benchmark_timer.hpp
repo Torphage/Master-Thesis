@@ -2,7 +2,7 @@
 #ifndef BENCHMARK_TIMER_HPP
 #define BENCHMARK_TIMER_HPP
 
-#include "utils.hpp"
+#include "../benchmark/benchmark_json.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -19,20 +19,8 @@ struct pre_run_info {
     int warmup_time;
 };
 
-struct benchmarkinfo {
-    std::vector<double> vals;
-    double meanval;
-    double lowmeanval;
-    double highmeanval;
-    double medianval;
-    double varianceval;
-    double stddevval;
-    double lowstddevval;
-    double highstddevval;
-};
-
 void print_header();
-void print_benchmark(const std::string& name, int n, int b, int d, pre_run_info run_info, benchmarkinfo info);
+void print_benchmark(const std::string& name, int n, int b, int d, pre_run_info run_info, benchmark_json::benchmarkinfo info);
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -140,7 +128,7 @@ static double time(Lambda&& fn, Args&&... args) {
 }
 
 template <class Lambda, class... Args>
-static benchmarkinfo benchmark(benchmark_timer::pre_run_info run_info, Lambda&& fn, Args&&... args) {
+static ::benchmark_json::benchmarkinfo benchmark(benchmark_timer::pre_run_info run_info, Lambda&& fn, Args&&... args) {
     int i = run_info.samples + run_info.warmup_iterations;
     std::vector<double> vec(run_info.samples);
 

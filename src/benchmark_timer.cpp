@@ -1,4 +1,5 @@
 #include "benchmark_timer.hpp"
+#include "../benchmark/benchmark_json.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -69,7 +70,7 @@ std::stringstream suitable_prefix(double num) {
     return ss;
 }
 
-void print_benchmark(const std::string& name, int n, int b, int d, benchmark_timer::pre_run_info run_info, benchmarkinfo info) {
+void print_benchmark(const std::string& name, int n, int b, int d, benchmark_timer::pre_run_info run_info, benchmark_json::benchmarkinfo info) {
     if (name.size() > 37) {
         std::cout << std::left << std::setw(38) << name << std::endl
                   << std::left << std::setw(38) << "";

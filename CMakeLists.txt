@@ -109,6 +109,8 @@ endif(BLAS_FOUND)
 add_executable(benchmarks 
         benchmark/benchmark_compressed_mul.cpp 
         benchmark/benchmark_compressed_mul.hpp
+        benchmark/benchmark_json.cpp
+        benchmark/benchmark_json.hpp
         src/fft.cpp 
         src/fft.hpp
         src/hashing.hpp
@@ -116,7 +118,8 @@ add_executable(benchmarks
         src/benchmark_timer.hpp                 
         src/utils.cpp                 
         src/utils.hpp                 
-        include/rapidcsv.h)
+        include/rapidcsv.h
+        include/json.hpp)
 
 target_link_libraries(benchmarks Eigen3::Eigen)
 target_link_libraries(benchmarks ${fftwVar})

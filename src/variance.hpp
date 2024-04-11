@@ -55,7 +55,7 @@ bool test_variance(MatrixRXd m1, MatrixRXd m2, int num_samples, int max_samples,
     std::vector<MatrixRXd> vec;
     MatrixRXd result = MatrixRXd::Zero(n, n);
 
-    double bound = (pow((m1 * m2).norm(), 2)) / b;
+    double bound = (pow((m1.matrix() * m2.matrix()).norm(), 2)) / b;
 
     std::cout << "Iterations running " << num_iterations;
     std::cout.flush();

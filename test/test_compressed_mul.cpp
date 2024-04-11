@@ -256,47 +256,6 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
         clean_ifft(ifft1);
     }
 
-    {
-        int num_threads = std::max(d, omp_get_max_threads());
-        MatrixRXd compressed3 = MatrixRXd::Zero(d, b);
-        MatrixRXd pas3 = MatrixRXd::Zero(num_threads, b);
-        MatrixRXd pbs3 = MatrixRXd::Zero(num_threads, b);
-        MatrixRXcd ps3 = MatrixRXcd::Zero(d, b);
-        MatrixRXcd out13(d * n, b / 2 + 1);
-        MatrixRXcd out23(d * n, b / 2 + 1);
-        fft_struct fft13 = init_fft(b, pas3.data(), out13.data());
-        fft_struct fft23 = init_fft(b, pbs3.data(), out23.data());
-        ifft_struct ifft3 = init_ifft(b, ps3.data(), compressed3.data());
-
-        BENCHMARK("Parallel Compress - Matti (combi with threads)") {
-            bompressed_product_par_large_threaded(m1, m2, b, d, hash, compressed3, pas3, pbs3, ps3, out13, out23, fft13, fft23, ifft3);
-        };
-
-        clean_fft(fft13);
-        clean_fft(fft23);
-        clean_ifft(ifft3);
-    }
-
-    {
-        MatrixRXd compressed4 = MatrixRXd::Zero(d, b);
-        MatrixRXd pas4 = MatrixRXd::Zero(d * n, b);
-        MatrixRXd pbs4 = MatrixRXd::Zero(d * n, b);
-        MatrixRXcd ps4 = MatrixRXcd::Zero(d, b);
-        MatrixRXcd out14(d * n, b / 2 + 1);
-        MatrixRXcd out24(d * n, b / 2 + 1);
-        fft_struct fft14 = init_fft(b, pas4.data(), out14.data());
-        fft_struct fft24 = init_fft(b, pbs4.data(), out24.data());
-        ifft_struct ifft4 = init_ifft(b, ps4.data(), compressed4.data());
-
-        BENCHMARK("Parallel Compress - Matti (collapse)") {
-            bompressed_product_par_large(m1, m2, b, d, hash, compressed4, pas4, pbs4, ps4, out14, out24, fft14, fft24, ifft4);
-        };
-
-        clean_fft(fft14);
-        clean_fft(fft24);
-        clean_ifft(ifft4);
-    }
-
     // BENCHMARK("Parallel Compress") {
     //     bompressed_product_par(m1, m2, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft);
     // };

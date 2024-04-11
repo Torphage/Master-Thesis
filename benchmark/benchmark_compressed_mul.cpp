@@ -9,10 +9,134 @@
 #include <iostream>
 #include <random>
 
-static void eigen(MatrixRXd& m1, MatrixRXd& m2, benchmark_timer::pre_run_info run_info) {
-    benchmark_timer::benchmarkinfo info = benchmark_timer::benchmark(run_info, [=]() { return (m1 * m2).eval(); });
+static void eigen(MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, [=]() { return (m1.matrix() * m2.matrix()).eval(); });
 
     benchmark_timer::print_benchmark("Eigen", 0, 0, 0, run_info, info);
+}
+
+static void eigen_matmul(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                c(i, j) += m1(i, k) * m2(k, j);
+            }
+        }
+    }
+}
+
+static void BM_eigen_matmul(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    MatrixRXd c = MatrixRXd::Zero(n, n);
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, eigen_matmul, c, m1, m2, n);
+
+    benchmark_timer::print_benchmark("Matmul (Eigen)", n, b, d, run_info, info);
+}
+
+static void eigen_matmul_par(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) {
+#pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                c(i, j) += m1(i, k) * m2(k, j);
+            }
+        }
+    }
+}
+
+static void BM_eigen_matmul_par(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    MatrixRXd c = MatrixRXd::Zero(n, n);
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, eigen_matmul_par, c, m1, m2, n);
+
+    benchmark_timer::print_benchmark("Matmul par (Eigen)", n, b, d, run_info, info);
+}
+
+static void matmul(std::vector<std::vector<double>> &c, std::vector<std::vector<double>> &m1, std::vector<std::vector<double>> &m2, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                c[i][j] += m1[i][k] * m2[k][j];
+            }
+        }
+    }
+}
+
+static void BM_matmul(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    std::vector<std::vector<double>> m1v(n, std::vector<double>(n, 0.0));
+    std::vector<std::vector<double>> m2v(n, std::vector<double>(n, 0.0));
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            m1v[i][j] = m1(i, j);
+            m2v[i][j] = m2(i, j);
+        }
+    }
+    std::vector<std::vector<double>> c(n, std::vector<double>(n, 0.0));
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, matmul, c, m1v, m2v, n);
+
+    benchmark_timer::print_benchmark("Matmul", n, b, d, run_info, info);
+}
+
+static void matmul_par(std::vector<std::vector<double>> &c, std::vector<std::vector<double>> &m1, std::vector<std::vector<double>> &m2, int n) {
+#pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                c[i][j] += m1[i][k] * m2[k][j];
+            }
+        }
+    }
+}
+
+static void BM_matmul_par(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    std::vector<std::vector<double>> m1v(n, std::vector<double>(n, 0.0));
+    std::vector<std::vector<double>> m2v(n, std::vector<double>(n, 0.0));
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            m1v[i][j] = m1(i, j);
+            m2v[i][j] = m2(i, j);
+        }
+    }
+    std::vector<std::vector<double>> c(n, std::vector<double>(n, 0.0));
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, matmul_par, c, m1v, m2v, n);
+
+    benchmark_timer::print_benchmark("Matmul par", n, b, d, run_info, info);
+}
+
+static void eigen_array_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
+    c = m1 * m2;
+}
+
+static void BM_eigen_array_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    MatrixRXd c(n, n);
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, eigen_array_product, c, m1, m2);
+
+    benchmark_timer::print_benchmark("Eigen Array Coeffwise product", n, 0, 0, run_info, info);
+}
+
+static void eigen_cwise_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
+    c = m1.cwiseProduct(m2);
+}
+
+static void BM_eigen_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    MatrixRXd c(n, n);
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, eigen_cwise_product, c, m1, m2);
+
+    benchmark_timer::print_benchmark("Eigen Cwise product", n, 0, 0, run_info, info);
+}
+
+static void cwise_product(MatrixRXd &c, int n, MatrixRXd &m1, MatrixRXd &m2) {
+#pragma omp parallel for num_threads(1)
+    for (int t = 0; t < n; t++) {
+        c.row(t) = m1.row(t) * m2.row(t);
+    }
+}
+
+static void BM_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_timer::pre_run_info run_info) {
+    MatrixRXd c(n, n);
+    benchmark_json::benchmarkinfo info = benchmark_timer::benchmark(run_info, cwise_product, c, n, m1, m2);
+
+    benchmark_timer::print_benchmark("Cwise product", n, 0, 0, run_info, info);
 }
 
 int main() {
@@ -80,8 +204,8 @@ int main() {
             ids.push_back(matrix_id);
 
             MatrixRXd temp1(n, n), temp2(n, n);
-            std::cin.read(reinterpret_cast<char*>(temp1.data()), n * n * sizeof(double));
-            std::cin.read(reinterpret_cast<char*>(temp2.data()), n * n * sizeof(double));
+            std::cin.read(reinterpret_cast<char *>(temp1.data()), n * n * sizeof(double));
+            std::cin.read(reinterpret_cast<char *>(temp2.data()), n * n * sizeof(double));
 
             m1s.push_back(temp1);
             m2s.push_back(temp2);
@@ -101,12 +225,10 @@ int main() {
                 compress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
-                compress_large_threaded_better<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large")
-                compress_large<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe")
+                compress_deluxe<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe_threaded" || s_function == "compress_deluxe_th")
+                compress_deluxe_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
                 decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
@@ -119,12 +241,10 @@ int main() {
                 compress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
-                compress_large_threaded_better<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large")
-                compress_large<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe")
+                compress_deluxe<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe_threaded" || s_function == "compress_deluxe_th")
+                compress_deluxe_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
                 decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
@@ -137,17 +257,31 @@ int main() {
                 compress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th" || s_function == "compress_large_threaded")
-                compress_large_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large_th_2" || s_function == "compress_large_th_b")
-                compress_large_threaded_better<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
-            if (s_function == "compress_large")
-                compress_large<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe")
+                compress_deluxe<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
+            if (s_function == "compress_deluxe_threaded" || s_function == "compress_deluxe_th")
+                compress_deluxe_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "decompress")
                 decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
             if (s_function == "both")
                 both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, run_info);
         }
+
+        if (s_function == "eigen_matmul")
+            BM_eigen_matmul(n, b, d, m1, m2, run_info);
+        if (s_function == "eigen_matmul_par")
+            BM_eigen_matmul_par(n, b, d, m1, m2, run_info);
+        if (s_function == "matmul")
+            BM_matmul(n, b, d, m1, m2, run_info);
+        if (s_function == "matmul_par")
+            BM_matmul_par(n, b, d, m1, m2, run_info);
+
+        if (s_function == "eigen_array_product")
+            BM_eigen_array_product(n, m1, m2, run_info);
+        if (s_function == "eigen_cwise_product")
+            BM_eigen_cwise_product(n, m1, m2, run_info);
+        if (s_function == "cwise_product")
+            BM_cwise_product(n, m1, m2, run_info);
     }
 
     return 0;

@@ -86,7 +86,7 @@ class FullyRandomHash {
 template <typename Word, typename SmallWord>
 class MultiplyShiftHash {
    private:
-    typedef Eigen::Matrix<Word, Eigen::Dynamic, 2, Eigen::RowMajor> MatrixType;
+    typedef Eigen::Array<Word, Eigen::Dynamic, 2> MatrixType;
     static constexpr int size = 8 * sizeof(SmallWord);
 
    public:
