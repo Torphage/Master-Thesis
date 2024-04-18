@@ -274,43 +274,44 @@ void bompressed_product_par_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int
 }
 
 template <typename T>
-void bompressed_product_par_deluxe_threaded(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
-                                            MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p, ArrayRXcd& sum,
-                                            MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+void bompressed_product_par_deluxe_special_edition(const MatrixRXd& m1, const MatrixRXd& m2, int b, int d, T& hash,
+                                                   MatrixRXd& compressed, MatrixRXd& pas, MatrixRXcd& p, MatrixRXcd& out1,
+                                                   MatrixRXcd& out2, const fft_struct fft1, const fft_struct fft2, const ifft_struct ifft1) {
     int n = m1.rows();
 
-    for (int t = 0; t < d; t++) {
 #pragma omp parallel
-        {
-            int thread_num = omp_get_thread_num();
-            int in_offset = thread_num * b;
-            int out_offset = thread_num * (b / 2 + 1);
-#pragma omp for schedule(static) reduction(+ : sum)
+    {
+        int thread_num = omp_get_thread_num();
+        int in_offset = thread_num * b;
+        int out_offset = thread_num * (b / 2 + 1);
+#pragma omp for schedule(static) collapse(2) reduction(+ : p)
+        for (int t = 0; t < d; t++) {
             for (int k = 0; k < n; k++) {
                 pas.row(thread_num).setZero();
-                pbs.row(thread_num).setZero();
 
-                for (int i = 0; i < n; i++) {
+                for (int i = 0; i < n; i++) {  // We compute the hashes waaaaaaaaay more times than necessary
+                    // pas(t, t) = m1(i, k);
                     pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
-                    pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
                 }
 
                 fft(fft1, in_offset, out_offset);
+
+                pas.row(thread_num).setZero();
+                for (int i = 0; i < n; i++) {
+                    pas(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
                 fft(fft2, in_offset, out_offset);
 
-                sum += out1.row(thread_num) * out2.row(thread_num);
+                p.row(t) += out1.row(thread_num) * out2.row(thread_num);
             }
         }
-        p.row(t) = sum;
-        sum.setZero();
+#pragma omp for
+        for (int t = 0; t < d; t++) {
+            ifft(ifft1, t * (b / 2 + 1), t * b);
+            compressed.row(t) /= b;
+        }
     }
-
-#pragma omp parallel for
-    for (int t = 0; t < d; t++) {
-        ifft(ifft1, t * (b / 2 + 1), t * b);
-    }
-
-    compressed /= b;
 }
 
 /**
@@ -428,6 +429,43 @@ void debompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T& hash, Mat
                 } else {
                     std::nth_element(row, row + (d - 1) / 2, row + d);
                     median2 = xt(i, d / 2 - 1);
+                    c(i, j) = (median1 + median2) / 2.0;
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void debompress_matrix_par_threaded(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& c, MatrixRXd& xt) {
+    double* start = xt.data();
+
+#pragma omp parallel
+    {
+        int thread_num = omp_get_thread_num();
+        double median1;
+        double median2;
+        double* row;
+#pragma omp for schedule(dynamic)
+        for (int i = 0; i < n; i++) {
+            row = start + (thread_num * d);
+
+            for (int j = 0; j < n; j++) {
+                for (int t = 0; t < d; t++) {
+                    xt(thread_num, t) = (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * (2 * static_cast<int>(hash(hash.s2, t, j, 2)) - 1) *
+                                        p(t, static_cast<int>(hash(hash.h1, t, i, b) + static_cast<int>(hash(hash.h2, t, j, b))) % b);
+                }
+
+                // Median calculations
+                std::nth_element(row, row + d / 2, row + d);
+
+                median1 = xt(thread_num, d / 2);
+
+                if (d % 2 != 0) {
+                    c(i, j) = median1;
+                } else {
+                    std::nth_element(row, row + (d - 1) / 2, row + d);
+                    median2 = xt(thread_num, d / 2 - 1);
                     c(i, j) = (median1 + median2) / 2.0;
                 }
             }

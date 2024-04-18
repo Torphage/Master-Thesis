@@ -1,5 +1,14 @@
 run,hash,function,n,b,d,density,matrix_id,matrix_seed,hash_seed,samples,warmup_iterations
-1,full,eigen,              2000,2000,9, 0.1,1,0,0,10,10
+1,full,eigen,              12000,12000,9, 0.1,2,0,0,30,10
+1,full,compress,           12000,12000,20, 0.1,2,5,5,30,10
+1,full,compress_th,        12000,12000,20, 0.1,2,5,5,30,10
+1,full,compress_special,   12000,12000,20, 0.1,2,5,5,30,10
+0,full,compress_deluxe,    12000,12000,20, 0.1,2,5,5,60,10
+0,mul,compress,            1000,3000,5, 0.001,1,0,0,10,10
+0,tab,compress,            1000,1000,10,0.001,1,0,0,10,10
+0,full,decompress,         1000,1000,5, 0.001,1,0,0,10,10
+0,mul,decompress,          1000,3000,5, 0.001,1,0,0,10,10
+0,tab,decompress,          1000,1000,10,0.001,1,0,0,10,10
 0,full,matmul,             2000,2000,9, 0.1,2,0,0,10,10
 0,full,matmul_par,         2000,2000,9, 0.1,2,0,0,10,10
 0,full,eigen_matmul,       2000,2000,9, 0.1,2,0,0,10,10
@@ -7,12 +16,3 @@ run,hash,function,n,b,d,density,matrix_id,matrix_seed,hash_seed,samples,warmup_i
 0,full,eigen_array_product,5000,5000,9, 0.1,2,0,0,100,10
 0,full,eigen_cwise_product,5000,5000,9, 0.1,2,0,0,100,10
 0,full,cwise_product,      5000,5000,9, 0.1,2,0,0,100,10
-1,full,compress,           2000,2000,20, 0.1,2,5,5,10,10
-1,full,compress_th,        2000,2000,20, 0.1,2,5,5,10,10
-1,full,compress_deluxe,    2000,2000,20, 0.1,2,5,5,10,10
-1,full,compress_deluxe_th, 2000,2000,20, 0.1,2,5,5,10,10
-0,mul,compress,            1000,3000,5, 0.001,1,0,0,10,10
-0,tab,compress,            1000,1000,10,0.001,1,0,0,10,10
-0,full,decompress,         1000,1000,5, 0.001,1,0,0,10,10
-0,mul,decompress,          1000,3000,5, 0.001,1,0,0,10,10
-0,tab,decompress,          1000,1000,10,0.001,1,0,0,10,10

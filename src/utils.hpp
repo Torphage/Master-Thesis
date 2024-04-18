@@ -29,11 +29,13 @@ typedef Eigen::Array<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> M
  */
 typedef Eigen::Array<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
 
-
 typedef Eigen::Array<Complex, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXcd;
 
 #pragma omp declare reduction(+ : ArrayRXcd : omp_out += omp_in) \
     initializer(omp_priv = ArrayRXcd::Zero(omp_orig.size()))
+
+#pragma omp declare reduction(+ : MatrixRXcd : omp_out += omp_in) \
+    initializer(omp_priv = MatrixRXcd::Zero(omp_orig.rows(), omp_orig.cols()))
 
 /**
  * @brief Generates a random sparse square matrix
