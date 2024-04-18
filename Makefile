@@ -12,7 +12,7 @@ full = "true"
 mul = "false"
 tab = "false"
 out_file = "./benchmark/benchmark.json"
-# M_ARCH = "native"
+M_ARCH ?=
 
 clean:
 	rm -rf build
@@ -24,11 +24,7 @@ build:
 
 rebuild:
 	$(MAKE) clean
-ifndef SLURM_ENV
-	cmake -DUSE_$(d)=ON -DM_ARCH=$(M_ARCH) -S . -B ./build
-else
-	cmake -DUSE_$(d)=ON -DCPP_ENV=$(SLURM_ENV) -DM_ARCH=$(M_ARCH) -S . -B ./build
-endif
+	cmake -DUSE_$(d)=ON -DM_ARCH=$(march) -S . -B ./build
 	cmake --build build -j 4
 
 run:
@@ -48,25 +44,12 @@ all:
 # Specific tests
 
 
-
-gen:
-	$(MAKE) build
-	./build/input_generator --size=$(size) --density=$(density)
-
-b:
-	./build/input_generator --size=$(size) --density=$(density) | ./build/benchmarks --size=$(size) --density=$(density) --benchmark_out=$(out_file) --seed=$(seed) -b $(b) -d $(d) --full=$(full) --mul=$(mul) --tab=$(tab) --benchmark_time_unit=$(unit)
-
-bench:
-	$(MAKE) build
-	$(MAKE) b
-
 catchb:
 	./build/tests --benchmark-samples=100 benchmarks
 
 catchbuild:
 	$(MAKE) build
 	$(MAKE) catchb
-
 
 test:
 	$(MAKE) build
