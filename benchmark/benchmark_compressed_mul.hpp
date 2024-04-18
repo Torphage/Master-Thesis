@@ -99,7 +99,7 @@ static void compress_deluxe_special(MatrixRXd& m1, MatrixRXd& m2, int n, int b, 
     clean_fft(fft2);
     clean_ifft(ifft1);
 
-    benchmark_timer::print_benchmark("Compress - Threaded Deluxe (Reduction)", n, b, d, config_info);
+    benchmark_timer::print_benchmark("Compress - Deluxe Special Edition", n, b, d, config_info);
 }
 
 template <class T>
