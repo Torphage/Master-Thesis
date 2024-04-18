@@ -13,14 +13,8 @@
 
 namespace benchmark_timer {
 
-struct pre_run_info {
-    int samples;
-    int warmup_iterations;
-    int warmup_time;
-};
-
 void print_header();
-void print_benchmark(const std::string& name, int n, int b, int d, pre_run_info run_info, benchmark_json::benchmarkinfo info);
+void print_benchmark(const std::string& name, int n, int b, int d, benchmark_json::config_information& config_info);
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -94,20 +88,6 @@ double stddev(std::vector<Word> const& v) {
     return sqrt(variance(v));
 }
 
-template <typename Word>
-double low_stddev(std::vector<Word>& v) {
-    std::vector<double> temp = v;
-    std::sort(temp.begin(), temp.end());
-    return sqrt(variance(std::vector<Word>(temp.begin(), temp.begin() + temp.size() / 2)));
-}
-
-template <typename Word>
-double high_stddev(std::vector<Word> const& v) {
-    std::vector<double> temp = v;
-    std::sort(temp.begin(), temp.end());
-    return sqrt(variance(std::vector<Word>(temp.begin() + temp.size() / 2, temp.end())));
-}
-
 template <class Lambda>
 static double time(Lambda&& fn) {
     auto start = std::chrono::steady_clock::now();
@@ -128,28 +108,29 @@ static double time(Lambda&& fn, Args&&... args) {
 }
 
 template <class Lambda, class... Args>
-static ::benchmark_json::benchmarkinfo benchmark(benchmark_timer::pre_run_info run_info, Lambda&& fn, Args&&... args) {
-    int i = run_info.samples + run_info.warmup_iterations;
-    std::vector<double> vec(run_info.samples);
-
-    while (i) {
-        if (i < run_info.samples) {
-            vec[run_info.samples - i] = time(fn, args...);
-        }
-        i--;
+void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Args&&... args) {
+    int i = config_info.warmup_iterations;
+    while (i--) {
+        time(fn, args...);
     }
 
-    return {
-        vec,
-        mean(vec),
-        low_mean(vec),
-        high_mean(vec),
-        median(vec),
-        variance(vec),
-        stddev(vec),
-        low_stddev(vec),
-        high_stddev(vec),
-    };
+    std::vector<double> vec(config_info.samples);
+    int j = config_info.samples;
+    while (j--) {
+        vec[config_info.samples - j] = time(fn, args...);
+    }
+
+    // std::cout << config_info.samples << config_info.function << std::endl;
+
+    config_info.results.vals = vec;
+    config_info.results.mean_val = mean(vec);
+    config_info.results.low_mean_val = low_mean(vec);
+    config_info.results.high_mean_val = high_mean(vec);
+    config_info.results.median_val = median(vec);
+    config_info.results.variance_val = variance(vec);
+    config_info.results.std_dev_val = stddev(vec);
+
+    return;
 }
 
 }  // namespace benchmark_timer

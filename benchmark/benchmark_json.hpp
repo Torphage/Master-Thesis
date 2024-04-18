@@ -10,18 +10,19 @@ namespace benchmark_json {
 
 struct benchmarkinfo {
     std::vector<double> vals;
-    double meanval;
-    double lowmeanval;
-    double highmeanval;
-    double medianval;
-    double varianceval;
-    double stddevval;
-    double lowstddevval;
-    double highstddevval;
+    double mean_val;
+    double low_mean_val;
+    double high_mean_val;
+    double median_val;
+    double variance_val;
+    double std_dev_val;
+
+    benchmarkinfo() : mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0) {
+        vals = std::vector<double>(0);
+    }
 };
 
 struct hardware_information {
-
 };
 
 /**
@@ -32,26 +33,34 @@ struct config_information {
     int b;
     int d;
     double density;
-    unsigned int seed;
     std::string hash;
     std::string function;
     unsigned int matrix_seed;
     unsigned int hash_seed;
     int samples;
     int warmup_iterations;
+    benchmarkinfo results;
+
+    config_information() : n(0), b(0), d(0), density(0.0), hash(""), function(""), matrix_seed(0), hash_seed(0), samples(0), warmup_iterations(0) {
+        results = benchmarkinfo();
+    }
 };
 
 /**
- * @brief 
+ * @brief
  */
 struct information {
     hardware_information hardware;
     std::vector<config_information> config;
-    benchmarkinfo results;
+
+    information() {
+        hardware = hardware_information();
+        config = std::vector<config_information>(0);
+    }
 };
 
-static void read_file(std::string filename);
-static void write_file(std::string filename, information info);
+nlohmann::json read_file(std::string filename);
+void write_file(std::string filename, information info);
 
 }  // namespace benchmark_json
 
