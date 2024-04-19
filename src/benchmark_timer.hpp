@@ -116,8 +116,9 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
 
     std::vector<double> vec(config_info.samples);
     int j = config_info.samples;
-    while (j--) {
+    while (j) {
         vec[config_info.samples - j] = time(fn, args...);
+        j--;
     }
 
     // std::cout << config_info.samples << config_info.function << std::endl;

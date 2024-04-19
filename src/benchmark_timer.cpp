@@ -12,13 +12,12 @@ void print_header() {
     std::cout << std::left << std::setw(40) << "benchmark name";
     std::cout << std::left << std::setw(15) << "samples";
     std::cout << std::left << std::setw(15) << "median";
-    std::cout << std::left << std::setw(15) << "" << std::endl;
+    std::cout << std::left << std::setw(15) << "std dev" << std::endl;
     std::cout << std::left << std::setw(40) << "";
     std::cout << std::left << std::setw(15) << "mean";
     std::cout << std::left << std::setw(15) << "low mean";
     std::cout << std::left << std::setw(15) << "high mean" << std::endl;
-    std::cout << std::left << std::setw(40) << "";
-    std::cout << std::left << std::setw(15) << "std dev" << std::endl;
+    std::cout << std::left << std::setw(40) << "" << std::endl;
     std::cout << "--------------------------------------------------------------------------------------" << std::endl;
 }
 
@@ -76,13 +75,13 @@ void print_benchmark(const std::string& name, int n, int b, int d, benchmark_jso
         std::cout << std::left << std::setw(38) << name;
     }
     std::cout << std::right << std::setw(15) << config_info.samples;
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.median_val).str() << std::endl;
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.median_val).str();
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.std_dev_val).str() << std::endl;
 
     std::cout << std::left << std::setw(38) << "    n:" + std::to_string(n) + "    b:" + std::to_string(b) + "    d:" + std::to_string(d);
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.low_mean_val).str();
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl;
-    std::cout << std::right << std::setw(38 + 15) << suitable_prefix(config_info.results.std_dev_val).str() << std::endl
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl
               << std::endl;
 }
 
