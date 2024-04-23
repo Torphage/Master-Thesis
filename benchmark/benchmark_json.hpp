@@ -9,6 +9,7 @@
 namespace benchmark_json {
 
 struct benchmarkinfo {
+    std::vector<double> warmup_vals;
     std::vector<double> vals;
     double mean_val;
     double low_mean_val;
@@ -18,6 +19,7 @@ struct benchmarkinfo {
     double std_dev_val;
 
     benchmarkinfo() : mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0) {
+        warmup_vals = std::vector<double>(0);
         vals = std::vector<double>(0);
     }
 };
@@ -33,15 +35,17 @@ struct config_information {
     int b;
     int d;
     double density;
+    std::string name;
     std::string hash;
     std::string function;
+    unsigned int matrix_id;
     unsigned int matrix_seed;
     unsigned int hash_seed;
     int samples;
     int warmup_iterations;
     benchmarkinfo results;
 
-    config_information() : n(0), b(0), d(0), density(0.0), hash(""), function(""), matrix_seed(0), hash_seed(0), samples(0), warmup_iterations(0) {
+    config_information() : n(0), b(0), d(0), density(0.0), name(""), hash(""), function(""), matrix_id(0), matrix_seed(0), hash_seed(0), samples(0), warmup_iterations(0) {
         results = benchmarkinfo();
     }
 };

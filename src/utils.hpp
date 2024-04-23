@@ -29,6 +29,8 @@ typedef Eigen::Array<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> M
  */
 typedef Eigen::Array<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
 
+typedef Eigen::Array<double, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXd;
+
 typedef Eigen::Array<Complex, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXcd;
 
 #pragma omp declare reduction(+ : ArrayRXcd : omp_out += omp_in) \

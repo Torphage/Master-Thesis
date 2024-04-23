@@ -11,13 +11,15 @@ namespace benchmark_timer {
 void print_header() {
     std::cout << std::left << std::setw(40) << "benchmark name";
     std::cout << std::left << std::setw(15) << "samples";
-    std::cout << std::left << std::setw(15) << "median";
-    std::cout << std::left << std::setw(15) << "std dev" << std::endl;
+    std::cout << std::left << std::setw(15) << "warmups";
+    std::cout << std::left << std::setw(15) << "est run time" << std::endl;
     std::cout << std::left << std::setw(40) << "";
     std::cout << std::left << std::setw(15) << "mean";
     std::cout << std::left << std::setw(15) << "low mean";
     std::cout << std::left << std::setw(15) << "high mean" << std::endl;
-    std::cout << std::left << std::setw(40) << "" << std::endl;
+    std::cout << std::left << std::setw(40) << "";
+    std::cout << std::left << std::setw(15) << "median";
+    std::cout << std::left << std::setw(15) << "std dev" << std::endl;
     std::cout << "--------------------------------------------------------------------------------------" << std::endl;
 }
 
@@ -67,21 +69,25 @@ std::stringstream suitable_prefix(double num) {
     return ss;
 }
 
-void print_benchmark(const std::string& name, int n, int b, int d, benchmark_json::config_information& config_info) {
-    if (name.size() > 37) {
-        std::cout << std::left << std::setw(38) << name << std::endl
+void print_pre_run_info(benchmark_json::config_information& config_info, const double time) {
+    if (config_info.name.size() > 37) {
+        std::cout << std::left << std::setw(38) << config_info.name << std::endl
                   << std::left << std::setw(38) << "";
     } else {
-        std::cout << std::left << std::setw(38) << name;
+        std::cout << std::left << std::setw(38) << config_info.name;
     }
     std::cout << std::right << std::setw(15) << config_info.samples;
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.median_val).str();
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.std_dev_val).str() << std::endl;
+    std::cout << std::right << std::setw(15) << config_info.warmup_iterations;
+    std::cout << std::right << std::setw(15) << suitable_prefix(time).str() << std::endl;
+}
 
-    std::cout << std::left << std::setw(38) << "    n:" + std::to_string(n) + "    b:" + std::to_string(b) + "    d:" + std::to_string(d);
+void print_benchmark(benchmark_json::config_information& config_info) {
+    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id);
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.low_mean_val).str();
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl;
+    std::cout << std::right << std::setw(38 + 15) << suitable_prefix(config_info.results.median_val).str();
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.std_dev_val).str() << std::endl
               << std::endl;
 }
 

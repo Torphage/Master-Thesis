@@ -5,15 +5,12 @@
 #include "../src/compressed_mul.hpp"
 #include "../src/hashing.hpp"
 
-#include <benchmark/benchmark.h>
-
 #include <iostream>
 #include <random>
 
 static void eigen(MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
+    config_info.name = "Eigen";
     benchmark_timer::benchmark(config_info, [=]() { return (m1.matrix() * m2.matrix()).eval(); });
-
-    benchmark_timer::print_benchmark("Eigen", m1.rows(), 0, 0, config_info);
 }
 
 static void eigen_matmul(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) {
@@ -26,11 +23,11 @@ static void eigen_matmul(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) {
     }
 }
 
-static void BM_eigen_matmul(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
+static void BM_eigen_matmul(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     MatrixRXd c = MatrixRXd::Zero(n, n);
-    benchmark_timer::benchmark(config_info, eigen_matmul, c, m1, m2, n);
 
-    benchmark_timer::print_benchmark("Matmul (Eigen)", n, b, d, config_info);
+    config_info.name = "Matmul (Eigen)";
+    benchmark_timer::benchmark(config_info, eigen_matmul, c, m1, m2, n);
 }
 
 static void eigen_matmul_par(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) {
@@ -44,11 +41,11 @@ static void eigen_matmul_par(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2, int n) 
     }
 }
 
-static void BM_eigen_matmul_par(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
+static void BM_eigen_matmul_par(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     MatrixRXd c = MatrixRXd::Zero(n, n);
-    benchmark_timer::benchmark(config_info, eigen_matmul_par, c, m1, m2, n);
 
-    benchmark_timer::print_benchmark("Matmul par (Eigen)", n, b, d, config_info);
+    config_info.name = "Matmul par (Eigen)";
+    benchmark_timer::benchmark(config_info, eigen_matmul_par, c, m1, m2, n);
 }
 
 static void matmul(std::vector<std::vector<double>> &c, std::vector<std::vector<double>> &m1, std::vector<std::vector<double>> &m2, int n) {
@@ -61,7 +58,7 @@ static void matmul(std::vector<std::vector<double>> &c, std::vector<std::vector<
     }
 }
 
-static void BM_matmul(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
+static void BM_matmul(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     std::vector<std::vector<double>> m1v(n, std::vector<double>(n, 0.0));
     std::vector<std::vector<double>> m2v(n, std::vector<double>(n, 0.0));
 
@@ -72,9 +69,9 @@ static void BM_matmul(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchma
         }
     }
     std::vector<std::vector<double>> c(n, std::vector<double>(n, 0.0));
-    benchmark_timer::benchmark(config_info, matmul, c, m1v, m2v, n);
 
-    benchmark_timer::print_benchmark("Matmul", n, b, d, config_info);
+    config_info.name = "Matmul";
+    benchmark_timer::benchmark(config_info, matmul, c, m1v, m2v, n);
 }
 
 static void matmul_par(std::vector<std::vector<double>> &c, std::vector<std::vector<double>> &m1, std::vector<std::vector<double>> &m2, int n) {
@@ -88,7 +85,7 @@ static void matmul_par(std::vector<std::vector<double>> &c, std::vector<std::vec
     }
 }
 
-static void BM_matmul_par(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
+static void BM_matmul_par(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     std::vector<std::vector<double>> m1v(n, std::vector<double>(n, 0.0));
     std::vector<std::vector<double>> m2v(n, std::vector<double>(n, 0.0));
 
@@ -99,9 +96,9 @@ static void BM_matmul_par(int n, int b, int d, MatrixRXd &m1, MatrixRXd &m2, ben
         }
     }
     std::vector<std::vector<double>> c(n, std::vector<double>(n, 0.0));
-    benchmark_timer::benchmark(config_info, matmul_par, c, m1v, m2v, n);
 
-    benchmark_timer::print_benchmark("Matmul par", n, b, d, config_info);
+    config_info.name = "Matmul par";
+    benchmark_timer::benchmark(config_info, matmul_par, c, m1v, m2v, n);
 }
 
 static void eigen_array_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
@@ -110,9 +107,9 @@ static void eigen_array_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
 
 static void BM_eigen_array_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     MatrixRXd c(n, n);
-    benchmark_timer::benchmark(config_info, eigen_array_product, c, m1, m2);
 
-    benchmark_timer::print_benchmark("Eigen Array Coeffwise product", n, 0, 0, config_info);
+    config_info.name = "Eigen Array Coeffwise product";
+    benchmark_timer::benchmark(config_info, eigen_array_product, c, m1, m2);
 }
 
 static void eigen_cwise_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
@@ -121,9 +118,9 @@ static void eigen_cwise_product(MatrixRXd &c, MatrixRXd &m1, MatrixRXd &m2) {
 
 static void BM_eigen_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     MatrixRXd c(n, n);
-    benchmark_timer::benchmark(config_info, eigen_cwise_product, c, m1, m2);
 
-    benchmark_timer::print_benchmark("Eigen Cwise product", n, 0, 0, config_info);
+    config_info.name = "Eigen Cwise product";
+    benchmark_timer::benchmark(config_info, eigen_cwise_product, c, m1, m2);
 }
 
 static void cwise_product(MatrixRXd &c, int n, MatrixRXd &m1, MatrixRXd &m2) {
@@ -135,9 +132,9 @@ static void cwise_product(MatrixRXd &c, int n, MatrixRXd &m1, MatrixRXd &m2) {
 
 static void BM_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     MatrixRXd c(n, n);
-    benchmark_timer::benchmark(config_info, cwise_product, c, n, m1, m2);
 
-    benchmark_timer::print_benchmark("Cwise product", n, 0, 0, config_info);
+    config_info.name = "Cwise product";
+    benchmark_timer::benchmark(config_info, cwise_product, c, n, m1, m2);
 }
 
 int main() {
@@ -183,13 +180,13 @@ int main() {
     std::vector<MatrixRXd> m2s;
     for (int index = 0; index < number_of_lines; index++) {
         int run = runs[index];
-        std::string s_hash = hashes[index];
-        std::string s_function = functions[index];
         int n = ns[index];
         int b = bs[index];
         int d = ds[index];
         double density = densities[index];
         int matrix_id = matrix_ids[index];
+        std::string s_hash = hashes[index];
+        std::string s_function = functions[index];
         int matrix_seed = matrix_seeds[index];
         unsigned int hash_seed = hash_seeds[index];
         int samples = sampless[index];
@@ -203,6 +200,7 @@ int main() {
         config_info.density = density;
         config_info.hash = s_hash;
         config_info.function = s_function;
+        config_info.matrix_id = matrix_id;
         config_info.matrix_seed = matrix_seed;
         config_info.hash_seed = hash_seed;
         config_info.samples = samples;
@@ -221,6 +219,21 @@ int main() {
 
             m1s.push_back(temp1);
             m2s.push_back(temp2);
+        } else {
+            auto iter = std::find(ids.begin(), ids.end(), matrix_id);
+            int new_index = std::distance(ids.begin(), iter);
+
+            config_info.n = ns[new_index];
+            config_info.b = bs[new_index];
+            config_info.d = ds[new_index];
+            config_info.density = densities[new_index];
+            config_info.hash = hashes[new_index];
+            config_info.function = functions[new_index];
+            config_info.matrix_id = matrix_ids[new_index];
+            config_info.matrix_seed = matrix_seeds[new_index];
+            config_info.hash_seed = hash_seeds[new_index];
+            config_info.samples = sampless[new_index];
+            config_info.warmup_iterations = warmup_iterationss[new_index];
         }
 
         int current_matrix_id = std::find(ids.begin(), ids.end(), matrix_id) - ids.begin();
@@ -233,14 +246,16 @@ int main() {
 
         if (s_hash == "ful" || s_hash == "full" || s_hash == "random" || s_hash == "rng") {
             FullyRandomHash<int> hash(n, b, d, hash_seed);
-            if (s_function == "compress")
-                compress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_seq")
+                compress_seq<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_par")
+                compress_par<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-                compress_deluxe_special<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
+            //     compress_deluxe_special<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
@@ -249,14 +264,16 @@ int main() {
 
         if (s_hash == "mul" || s_hash == "mult" || s_hash == "multiply" || s_hash == "shift") {
             MultiplyShiftHash<uint32_t, uint16_t> hash(d, hash_seed);
-            if (s_function == "compress")
-                compress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_seq")
+                compress_seq<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_par")
+                compress_par<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-                compress_deluxe_special<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
+            //     compress_deluxe_special<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
@@ -265,14 +282,16 @@ int main() {
 
         if (s_hash == "tab" || s_hash == "tabulation") {
             TabulationHash<uint32_t, uint32_t, 8> hash(d, hash_seed);
-            if (s_function == "compress")
-                compress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_seq")
+                compress_seq<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_par")
+                compress_par<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_th" || s_function == "compress_threaded")
                 compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-                compress_deluxe_special<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
+            //     compress_deluxe_special<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
@@ -280,13 +299,13 @@ int main() {
         }
 
         if (s_function == "eigen_matmul")
-            BM_eigen_matmul(n, b, d, m1, m2, config_info);
+            BM_eigen_matmul(n, m1, m2, config_info);
         if (s_function == "eigen_matmul_par")
-            BM_eigen_matmul_par(n, b, d, m1, m2, config_info);
+            BM_eigen_matmul_par(n, m1, m2, config_info);
         if (s_function == "matmul")
-            BM_matmul(n, b, d, m1, m2, config_info);
+            BM_matmul(n, m1, m2, config_info);
         if (s_function == "matmul_par")
-            BM_matmul_par(n, b, d, m1, m2, config_info);
+            BM_matmul_par(n, m1, m2, config_info);
 
         if (s_function == "eigen_array_product")
             BM_eigen_array_product(n, m1, m2, config_info);

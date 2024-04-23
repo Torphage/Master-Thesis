@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -14,7 +15,8 @@
 namespace benchmark_timer {
 
 void print_header();
-void print_benchmark(const std::string& name, int n, int b, int d, benchmark_json::config_information& config_info);
+void print_pre_run_info(benchmark_json::config_information& config_info, const double time);
+void print_benchmark(benchmark_json::config_information& config_info);
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -109,20 +111,38 @@ static double time(Lambda&& fn, Args&&... args) {
 
 template <class Lambda, class... Args>
 void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Args&&... args) {
-    int i = config_info.warmup_iterations;
-    while (i--) {
-        time(fn, args...);
-    }
-
+    std::vector<double> warmup_vec(config_info.warmup_iterations);
     std::vector<double> vec(config_info.samples);
-    int j = config_info.samples;
-    while (j) {
-        vec[config_info.samples - j] = time(fn, args...);
-        j--;
+
+    int estimation_samples = static_cast<int>(std::min(100.0, std::ceil(config_info.warmup_iterations / 20.0)));
+    int i = 0;
+
+    // Benchmark only a few times, depending on the number of warmup iterations,
+    // this will give the user an estimation for how long each sample take. 
+    while (i < estimation_samples) {
+        warmup_vec[i] = time(fn, args...);
+        i++;
     }
 
-    // std::cout << config_info.samples << config_info.function << std::endl;
+    // Print the name of what is being benchmarked, how many samples it takes,
+    // as well as the estimated run time for each sample.
+    print_pre_run_info(config_info, mean(std::vector<double>(warmup_vec.begin(), warmup_vec.begin() + estimation_samples)));
 
+    // Perform the rest of the warmup samples, and store them in a separate vector,
+    // such that they can be viewed in the output json file.
+    while (i < config_info.warmup_iterations) {
+        warmup_vec[i] = time(fn, args...);
+        i++;
+    }
+
+    // Benchmark the program and store it in a new vector
+    int j = 0;
+    while (j < config_info.samples) {
+        vec[j] = time(fn, args...);
+        j++;
+    }
+
+    config_info.results.warmup_vals = warmup_vec;
     config_info.results.vals = vec;
     config_info.results.mean_val = mean(vec);
     config_info.results.low_mean_val = low_mean(vec);
@@ -130,6 +150,8 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
     config_info.results.median_val = median(vec);
     config_info.results.variance_val = variance(vec);
     config_info.results.std_dev_val = stddev(vec);
+
+    print_benchmark(config_info);
 
     return;
 }

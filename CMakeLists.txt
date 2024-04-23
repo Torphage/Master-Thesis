@@ -115,6 +115,7 @@ add_executable(benchmarks
         benchmark/benchmark_json.hpp
         src/fft.cpp 
         src/fft.hpp
+        src/function.hpp
         src/hashing.hpp
         src/benchmark_timer.cpp                 
         src/benchmark_timer.hpp                 
@@ -125,7 +126,6 @@ add_executable(benchmarks
 
 target_link_libraries(benchmarks Eigen3::Eigen)
 target_link_libraries(benchmarks ${fftwVar})
-target_link_libraries(benchmarks benchmark::benchmark)
 
 if(OpenMP_FOUND)
   target_link_libraries(benchmarks OpenMP::OpenMP_CXX)

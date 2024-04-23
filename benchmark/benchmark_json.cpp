@@ -20,6 +20,7 @@ void write_file(std::string filename, information info) {
         nlohmann::json benchmark = {};
 
         nlohmann::json config = {};
+        config["name"] = c.name;
         config["function"] = c.function;
         config["hash"] = c.hash;
         config["n"] = c.n;
@@ -34,7 +35,6 @@ void write_file(std::string filename, information info) {
         benchmark["config"] = config;
 
         nlohmann::json result;
-        nlohmann::json runs;
 
         result["mean"] = c.results.mean_val;
         result["low_mean"] = c.results.low_mean_val;
@@ -43,10 +43,16 @@ void write_file(std::string filename, information info) {
         result["variance"] = c.results.variance_val;
         result["stdval"] = c.results.std_dev_val;
 
+        nlohmann::json warmups;
+        for (const double &time : c.results.warmup_vals) {
+            warmups.push_back(time);
+        }
+        nlohmann::json runs;
         for (const double &time : c.results.vals) {
             runs.push_back(time);
         }
 
+        result["warmups"] = warmups;
         result["timers"] = runs;
 
         benchmark["result"] = result;
