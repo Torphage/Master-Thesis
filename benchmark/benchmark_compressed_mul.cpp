@@ -225,14 +225,9 @@ int main() {
             int new_index = std::distance(matrix_ids.begin(), iter);
 
             config_info.n = ns[new_index];
-            config_info.b = bs[new_index];
-            config_info.d = ds[new_index];
             config_info.density = densities[new_index];
-            config_info.hash = hashes[new_index];
-            config_info.function = functions[new_index];
             config_info.matrix_id = matrix_ids[new_index];
             config_info.matrix_seed = matrix_seeds[new_index];
-            config_info.hash_seed = hash_seeds[new_index];
         }
 
         int current_matrix_id = std::find(ids.begin(), ids.end(), matrix_id) - ids.begin();
