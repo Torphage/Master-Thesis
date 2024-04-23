@@ -1,9 +1,19 @@
 run,hash,function,n,b,d,density,matrix_id,matrix_seed,hash_seed,samples,warmup_iterations
-1,full,eigen,              12000,12000,9, 0.1,2,0,0,30,10
-1,full,compress,           12000,12000,20, 0.1,2,5,5,30,10
-1,full,compress_th,        12000,12000,20, 0.1,2,5,5,30,10
-1,full,compress_special,   12000,12000,20, 0.1,2,5,5,30,10
-0,full,compress_deluxe,    12000,12000,20, 0.1,2,5,5,60,10
+0,full,eigen,              2000,2000,9, 0.1,2,0,0,300,100
+1,full,compress_par,       1000,1000,1, 0.1,1,5,5,2000,100
+1,full,compress_par,       1000,2000,1, 0.1,1,5,5,2000,100
+1,full,compress_par,       1000,4000,1, 0.1,1,5,5,2000,100
+1,full,compress_par,       1000,6000,1, 0.1,1,5,5,2000,100
+1,full,compress_par,       1000,8000,1, 0.1,1,5,5,2000,100
+1,full,compress_par,       1000,10000,1, 0.1,1,5,5,2000,100
+0,full,compress_th,        12000,12000,20, 0.1,2,5,5,30,10
+0,full,compress_special,   12000,12000,20, 0.1,2,5,5,30,10
+1,full,compress_deluxe,    1000,1000,1, 0.1,1,5,5,2000,100
+1,full,compress_deluxe,    1000,2000,1, 0.1,1,5,5,2000,100
+1,full,compress_deluxe,    1000,4000,1, 0.1,1,5,5,2000,100
+1,full,compress_deluxe,    1000,6000,1, 0.1,1,5,5,2000,100
+1,full,compress_deluxe,    1000,8000,1, 0.1,1,5,5,2000,100
+1,full,compress_deluxe,    1000,10000,1, 0.1,1,5,5,2000,100
 0,mul,compress,            1000,3000,5, 0.001,1,0,0,10,10
 0,tab,compress,            1000,1000,10,0.001,1,0,0,10,10
 0,full,decompress,         1000,1000,5, 0.001,1,0,0,10,10

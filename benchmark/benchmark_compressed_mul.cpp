@@ -193,6 +193,10 @@ int main() {
         int warmup_iterations = warmup_iterationss[index];
         // int warmup_time = warmup_times[index];
 
+        if (hash_seed == 0) hash_seed = std::random_device{}();
+
+        if (run == 0) continue;
+
         benchmark_json::config_information config_info = benchmark_json::config_information();
         config_info.n = n;
         config_info.b = b;
@@ -206,10 +210,6 @@ int main() {
         config_info.samples = samples;
         config_info.warmup_iterations = warmup_iterations;
 
-        if (hash_seed == 0) hash_seed = std::random_device{}();
-
-        if (run == 0) continue;
-
         if (std::find(ids.begin(), ids.end(), matrix_id) == ids.end()) {
             ids.push_back(matrix_id);
 
@@ -220,8 +220,9 @@ int main() {
             m1s.push_back(temp1);
             m2s.push_back(temp2);
         } else {
-            auto iter = std::find(ids.begin(), ids.end(), matrix_id);
-            int new_index = std::distance(ids.begin(), iter);
+            ids.push_back(-1);
+            auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
+            int new_index = std::distance(matrix_ids.begin(), iter);
 
             config_info.n = ns[new_index];
             config_info.b = bs[new_index];
@@ -232,8 +233,6 @@ int main() {
             config_info.matrix_id = matrix_ids[new_index];
             config_info.matrix_seed = matrix_seeds[new_index];
             config_info.hash_seed = hash_seeds[new_index];
-            config_info.samples = sampless[new_index];
-            config_info.warmup_iterations = warmup_iterationss[new_index];
         }
 
         int current_matrix_id = std::find(ids.begin(), ids.end(), matrix_id) - ids.begin();

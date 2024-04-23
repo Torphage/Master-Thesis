@@ -79,10 +79,10 @@ void print_pre_run_info(benchmark_json::config_information& config_info, const d
     std::cout << std::right << std::setw(15) << config_info.samples;
     std::cout << std::right << std::setw(15) << config_info.warmup_iterations;
     std::cout << std::right << std::setw(15) << suitable_prefix(time).str() << std::endl;
+    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::flush;
 }
 
 void print_benchmark(benchmark_json::config_information& config_info) {
-    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id);
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.low_mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl;
