@@ -1,4 +1,5 @@
 #include "compressed_mul.hpp"
+#include "function.hpp"
 #include "hashing.hpp"
 #include "utils.hpp"
 
@@ -21,31 +22,9 @@ int main() {
     // FullyRandomHash<uint64_t> hash(n, b, d, seed);
     MultiplyShiftHash<uint32_t, uint16_t> hash(d, seed);
     // TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
-
-    int threads = omp_get_max_threads();
-    MatrixRXd compressed = MatrixRXd::Zero(d, b);
-    MatrixRXd pas = MatrixRXd::Zero(threads, b);
-    // MatrixRXd pbs = MatrixRXd::Zero(threads, b);
-    MatrixRXcd ps = MatrixRXcd::Zero(d, b / 2 + 1);
-    ArrayRXcd sum = ArrayRXcd::Zero(b / 2 + 1);
-    MatrixRXcd out1(threads, b / 2 + 1);
-    MatrixRXcd out2(threads, b / 2 + 1);
-    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
-    fft_struct fft2 = init_fft(b, pas.data(), out2.data());
-    ifft_struct ifft = init_ifft(b, ps.data(), compressed.data());
-
-    MatrixRXd result = MatrixRXd::Zero(n, n);
-    MatrixRXd xt = MatrixRXd::Zero(threads, d);
-
-    bompressed_product_par_deluxe_special_edition(m1, m2, b, d, hash, compressed, pas, ps, out1, out2, fft1, fft2, ifft);
-
-    debompress_matrix_par_threaded(compressed, n, b, d, hash, result, xt);
-
-    clean_fft(fft1);
-    clean_fft(fft2);
-    clean_ifft(ifft);
-
-    // std::cout << m1 << std::endl;
+    
+    MatrixRXd compressed = function::compress_deluxe(m1, m2, n, b, d, hash);
+    MatrixRXd result = function::decompress_par(compressed, n, b, d, hash);
 
     MatrixRXd real_product = m1.matrix() * m2.matrix();
 
@@ -60,3 +39,40 @@ int main() {
 
     return 0;
 }
+
+// #include <iostream>
+// #include <Eigen/Dense>
+
+// // Example method
+// void myMethod(Eigen::MatrixXd &mat) {
+//     mat(0,0) = 69;
+//     // std::cout << "Inside myMethod: " << value << std::endl;
+// }
+
+// auto foo(int b, int d) {
+//     Eigen::MatrixXd compressed = Eigen::MatrixXd::Zero(d, b);
+//     compressed(0, 0) = 1;
+//     compressed(1, 1) = 1;
+//     compressed(0, 1) = 1;
+//     compressed(1, 0) = 1;
+//     return [&]() mutable -> Eigen::MatrixXd {
+//         myMethod(compressed);
+//         return compressed;
+//     };
+//     // std::cout << "Inside myMethod: " << value << std::endl;
+// }
+
+// int main() {
+//     // Create a lambda that directly calls myMethod
+//     // auto myLambda =  {
+//     //     // Perform any additional logic here (if needed)
+//     //     myMethod(value);
+//     // };
+//     auto a = foo(5, 4)();
+
+//     // Invoke the lambda
+//     // myLambda(42);
+//     std::cout << a << std::endl;
+
+//     return 0;
+// }
