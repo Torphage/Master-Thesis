@@ -126,7 +126,7 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
 
     // Print the name of what is being benchmarked, how many samples it takes,
     // as well as the estimated run time for each sample.
-    print_pre_run_info(config_info, mean(std::vector<double>(warmup_vec.begin(), warmup_vec.begin() + estimation_samples)));
+    print_pre_run_info(config_info, (config_info.warmup_iterations + config_info.samples - estimation_samples) * mean(std::vector<double>(warmup_vec.begin(), warmup_vec.begin() + estimation_samples)));
 
     // Perform the rest of the warmup samples, and store them in a separate vector,
     // such that they can be viewed in the output json file.
