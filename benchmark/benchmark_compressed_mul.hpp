@@ -93,24 +93,17 @@ template <class T>
 static void compress_secret(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
     int num_threads = omp_get_max_threads();
     int size = std::max(2 * num_threads, d);
-    
     MatrixRXd pas = MatrixRXd::Zero(size, b);
-    
     MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
-   
-    MatrixRXcd out(4  * num_threads, b / 2 + 1);
-   
+    MatrixRXcd out(4 * num_threads, b / 2 + 1);
     fft_struct fft1 = init_fft(b, pas.data(), out.data());
-
     ifft_struct ifft1 = init_ifft(b, p.data(), pas.data());
 
     config_info.name = "Compress - Secret Dark Tech";
-
     benchmark_timer::benchmark(config_info, bompressed_product_par_secret_dark_tech_edition<T>, m1, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
 
     clean_fft(fft1);
     clean_ifft(ifft1);
-
 }
 
 template <class T>

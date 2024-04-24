@@ -8,15 +8,22 @@
 #include <chrono>
 #include <cmath>
 #include <numeric>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <iostream>
 
 namespace benchmark_timer {
 
+std::stringstream suitable_prefix(double num);
 void print_header();
 void print_pre_run_info(benchmark_json::config_information& config_info, const double time);
 void print_benchmark(benchmark_json::config_information& config_info);
+
+template <typename Word>
+double runtime(std::vector<Word> const& v1, std::vector<Word> const& v2) {
+    return std::reduce(v1.begin(), v1.end()) + std::reduce(v2.begin(), v2.end());
+}
 
 template <typename Word>
 double mean(std::vector<Word> const& v) {
@@ -118,7 +125,7 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
     int i = 0;
 
     // Benchmark only a few times, depending on the number of warmup iterations,
-    // this will give the user an estimation for how long each sample take. 
+    // this will give the user an estimation for how long each sample take.
     while (i < estimation_samples) {
         warmup_vec[i] = time(fn, args...);
         i++;
@@ -144,6 +151,7 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
 
     config_info.results.warmup_vals = warmup_vec;
     config_info.results.vals = vec;
+    config_info.results.runtime_val = runtime(vec, warmup_vec);
     config_info.results.mean_val = mean(vec);
     config_info.results.low_mean_val = low_mean(vec);
     config_info.results.high_mean_val = high_mean(vec);

@@ -11,6 +11,7 @@ namespace benchmark_json {
 struct benchmarkinfo {
     std::vector<double> warmup_vals;
     std::vector<double> vals;
+    double runtime_val;
     double mean_val;
     double low_mean_val;
     double high_mean_val;
@@ -18,7 +19,7 @@ struct benchmarkinfo {
     double variance_val;
     double std_dev_val;
 
-    benchmarkinfo() : mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0) {
+    benchmarkinfo() : runtime_val(0.0), mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0) {
         warmup_vals = std::vector<double>(0);
         vals = std::vector<double>(0);
     }

@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <random>
+#include <chrono>
 
 static void eigen(MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     config_info.name = "Eigen";
@@ -138,6 +139,8 @@ static void BM_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json
 }
 
 int main() {
+    auto start = std::chrono::steady_clock::now();
+
     std::cout << "----- Settings -----" << std::endl;
 #ifdef USE_MKL
     std::cout << "Backend = MKL" << std::endl;
@@ -310,6 +313,14 @@ int main() {
 
         info.config.push_back(config_info);
     }
+
+    auto finish = std::chrono::steady_clock::now();
+
+    double total_duration = std::chrono::duration_cast<
+                                std::chrono::duration<double>>(finish - start)
+                                .count();
+
+    std::cout << "Total benchmarking duration: " << benchmark_timer::suitable_prefix(total_duration).str() << std::endl;
 
     benchmark_json::write_file("benchmark.json", info);
 
