@@ -248,8 +248,8 @@ int main() {
                 compress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
-            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-            //     compress_deluxe_special<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret")
+                compress_secret<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
@@ -266,8 +266,8 @@ int main() {
                 compress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
-            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-            //     compress_deluxe_special<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret")
+                compress_secret<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
@@ -284,8 +284,8 @@ int main() {
                 compress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_deluxe")
                 compress_deluxe<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
-            // if (s_function == "compress_special" || s_function == "compress_deluxe_special")
-            //     compress_deluxe_special<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret")
+                compress_secret<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")

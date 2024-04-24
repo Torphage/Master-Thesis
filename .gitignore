@@ -3,6 +3,7 @@
 
 .vscode/*
 benchmark.json
+input.csv
 
 .DS_STORE
 

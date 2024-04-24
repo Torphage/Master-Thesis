@@ -229,6 +229,49 @@ void bompressed_product_par_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int
     }
 }
 
+
+template <typename T>
+void bompressed_product_par_secret_dark_tech_edition(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
+                            MatrixRXd& pas, MatrixRXcd& p,
+                            MatrixRXcd& out1, const fft_struct fft1, const ifft_struct ifft1) {
+    
+    
+#pragma omp parallel
+    {
+        int thread_num = 2 * omp_get_thread_num();
+        int in_offset = thread_num * b;
+        int out_offset = thread_num * (b / 2 + 1);
+#pragma omp for schedule(auto) collapse(2) reduction(+:p)
+        for (int t = 0; t < d; t++) {
+
+            for (int k = 0; k < n; k++) {
+                
+                pas.row(thread_num).setZero();
+
+                for (int i = 0; i < n; i++) {
+                    pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(i, k);
+                }
+
+                fft(fft1, in_offset, out_offset);
+                pas.row(thread_num).setZero();
+
+                for (int i = 0; i < n; i++) {
+                    pas(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                }
+
+                fft(fft1, in_offset, out_offset + 2 * omp_get_max_threads() * (b / 2 + 1));
+
+                p.row(t) += out1.row(thread_num) * out1.row(thread_num + 2 * omp_get_max_threads());
+            }
+        }
+#pragma omp for
+        for (int t = 0; t < d; t++) {
+            ifft(ifft1, t * (b / 2 + 1), t * b);
+            pas.row(t) /= b;
+        }
+    }
+}
+
 /**
  * @brief Decompressed a compressed product according to Pagh's algorithm found in
  *        "Compressed Matrix Multiplication" (2013).

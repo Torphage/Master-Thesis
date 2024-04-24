@@ -90,6 +90,25 @@ MatrixRXd compress_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b
     return compressed;
 }
 
+template <typename T>
+MatrixRXd compress_secret(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash) {
+    int threads = omp_get_max_threads();
+    int size = std::max(2 * threads, d);
+
+    MatrixRXd pas = MatrixRXd::Zero(size, b);
+    MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out(4 * threads, b / 2 + 1);
+    fft_struct fft1 = init_fft(b, pas.data(), out.data());
+    ifft_struct ifft1 = init_ifft(b, p.data(), pas.data());
+
+    bompressed_product_par_secret_dark_tech_edition(m1, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
+
+    clean_fft(fft1);
+    clean_ifft(ifft1);
+
+    return pas;
+}
+
 // template <typename T>
 // void compress_special(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash) {
 //     int threads = omp_get_max_threads();

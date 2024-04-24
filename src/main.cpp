@@ -23,7 +23,7 @@ int main() {
     MultiplyShiftHash<uint32_t, uint16_t> hash(d, seed);
     // TabulationHash<uint32_t, uint32_t, 8> hash(d, seed);
     
-    MatrixRXd compressed = function::compress_deluxe(m1, m2, n, b, d, hash);
+    MatrixRXd compressed = function::compress_secret(m1, m2, n, b, d, hash);
     MatrixRXd result = function::decompress_par(compressed, n, b, d, hash);
 
     MatrixRXd real_product = m1.matrix() * m2.matrix();
