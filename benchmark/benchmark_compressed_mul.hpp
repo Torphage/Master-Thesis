@@ -21,8 +21,10 @@ static void compress_seq(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& h
     fft_struct fft1 = init_fft(b, pa.data(), out1.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     config_info.name = "Compress - Original";
-    benchmark_timer::benchmark(config_info, bompressed_product_seq<T>, m1, m2, n, b, d, hash, compressed, pa, p, out1, fft1, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_seq<T>, m1t, m2, n, b, d, hash, compressed, pa, p, out1, fft1, ifft1);
 
     clean_fft(fft1);
     clean_ifft(ifft1);
@@ -40,8 +42,10 @@ static void compress_par(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& h
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     config_info.name = "Compress - Original";
-    benchmark_timer::benchmark(config_info, bompressed_product_par<T>, m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_par<T>, m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -61,8 +65,10 @@ static void compress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d,
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     config_info.name = "Compress - Threaded";
-    benchmark_timer::benchmark(config_info, bompressed_product_par_threaded<T>, m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_par_threaded<T>, m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -81,8 +87,10 @@ static void compress_deluxe(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T
     fft_struct fft2 = init_fft(b, pas.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     config_info.name = "Compress - Deluxe";
-    benchmark_timer::benchmark(config_info, bompressed_product_par_deluxe<T>, m1, m2, n, b, d, hash, compressed, pas, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_par_deluxe<T>, m1t, m2, n, b, d, hash, compressed, pas, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -99,8 +107,29 @@ static void compress_secret(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T
     fft_struct fft1 = init_fft(b, pas.data(), out.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), pas.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     config_info.name = "Compress - Secret Dark Tech";
-    benchmark_timer::benchmark(config_info, bompressed_product_par_secret_dark_tech_edition<T>, m1, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_par_secret_dark_tech_edition<T>, m1t, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
+
+    clean_fft(fft1);
+    clean_ifft(ifft1);
+}
+
+template <class T>
+static void compress_secret2(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
+    int num_threads = omp_get_max_threads();
+    int size = std::max(2 * num_threads, d);
+    MatrixRXd pas = MatrixRXd::Zero(size, b);
+    MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out(4 * num_threads, b / 2 + 1);
+    fft_struct fft1 = init_fft(b, pas.data(), out.data());
+    ifft_struct ifft1 = init_ifft(b, p.data(), pas.data());
+
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    config_info.name = "Compress - Secret Dark Tech";
+    benchmark_timer::benchmark(config_info, bompressed_product_par_secret_dark_tech_edition2<T>, m1t, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
 
     clean_fft(fft1);
     clean_ifft(ifft1);
@@ -118,11 +147,39 @@ static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& has
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
     config_info.name = "Decompress - Original";
-    bompressed_product_par<T>(m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    bompressed_product_par<T>(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
+
+    clean_fft(fft1);
+    clean_fft(fft2);
+    clean_ifft(ifft1);
+}
+
+template <class T>
+static void decompress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
+    MatrixRXd compressed = MatrixRXd::Zero(d, b);
+    MatrixRXd pas = MatrixRXd::Zero(d, b);
+    MatrixRXd pbs = MatrixRXd::Zero(d, b);
+    MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out1(d, b / 2 + 1);
+    MatrixRXcd out2(d, b / 2 + 1);
+    fft_struct fft1 = init_fft(b, pas.data(), out1.data());
+    fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
+    ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
+
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    MatrixRXd result = MatrixRXd::Zero(n, n);
+    MatrixRXd xt = MatrixRXd::Zero(omp_get_max_threads(), d);
+
+    config_info.name = "Decompress - Original";
+    bompressed_product_par<T>(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
     benchmark_timer::benchmark(config_info, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
 
     clean_fft(fft1);
@@ -142,6 +199,8 @@ static void both(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, ben
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
@@ -150,7 +209,7 @@ static void both(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, ben
 
     config_info.name = "Compress - Original";
     config_info2.name = "Decompress - Original";
-    benchmark_timer::benchmark(config_info, bompressed_product_par<T>, m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, bompressed_product_par<T>, m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
     benchmark_timer::benchmark(config_info2, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
 
     clean_fft(fft1);

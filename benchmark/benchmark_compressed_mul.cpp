@@ -5,9 +5,10 @@
 #include "../src/compressed_mul.hpp"
 #include "../src/hashing.hpp"
 
+#include <chrono>
 #include <iostream>
 #include <random>
-#include <chrono>
+#include <unistd.h>
 
 static void eigen(MatrixRXd &m1, MatrixRXd &m2, benchmark_json::config_information &config_info) {
     config_info.name = "Eigen";
@@ -158,7 +159,13 @@ int main() {
 
     benchmark_timer::print_header();
 
-    rapidcsv::Document doc("input.csv");
+    rapidcsv::Document doc("input.csv",
+                           rapidcsv::LabelParams(),
+                           rapidcsv::SeparatorParams(),
+                           rapidcsv::ConverterParams(),
+                           rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
+                                                      '#' /* pCommentPrefix */,
+                                                      true /* pSkipEmptyLines */));
 
     std::vector<int> runs = doc.GetColumn<int>("run");
     std::vector<std::string> hashes = doc.GetColumn<std::string>("hash");
@@ -223,7 +230,6 @@ int main() {
             m1s.push_back(temp1);
             m2s.push_back(temp2);
         } else {
-            ids.push_back(-1);
             auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
             int new_index = std::distance(matrix_ids.begin(), iter);
 
@@ -237,6 +243,8 @@ int main() {
 
         MatrixRXd m1 = m1s[current_matrix_id];
         MatrixRXd m2 = m2s[current_matrix_id];
+
+        usleep(5000000);
 
         if (s_function == "eigen")
             eigen(m1, m2, config_info);
@@ -253,8 +261,12 @@ int main() {
                 compress_deluxe<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_secret")
                 compress_secret<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret2")
+                compress_secret2<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_th" || s_function == "decompress_threaded")
+                decompress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
         }
@@ -271,8 +283,12 @@ int main() {
                 compress_deluxe<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_secret")
                 compress_secret<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret2")
+                compress_secret2<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_th" || s_function == "decompress_threaded")
+                decompress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
         }
@@ -289,8 +305,12 @@ int main() {
                 compress_deluxe<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_secret")
                 compress_secret<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "compress_secret2")
+                compress_secret2<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress")
                 decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_th" || s_function == "decompress_threaded")
+                decompress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
         }

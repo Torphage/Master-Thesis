@@ -18,7 +18,9 @@ MatrixRXd compress_seq(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, i
     fft_struct fft1 = init_fft(b, pa.data(), out1.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    bompressed_product_seq(m1, m2, n, b, d, hash, compressed, pa, p, out1, fft1, ifft1);
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    bompressed_product_seq(m1t, m2, n, b, d, hash, compressed, pa, p, out1, fft1, ifft1);
 
     clean_fft(fft1);
     clean_ifft(ifft1);
@@ -38,7 +40,9 @@ MatrixRXd compress_par(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, i
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    bompressed_product_par(m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    bompressed_product_par(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -60,7 +64,9 @@ MatrixRXd compress_threaded(const MatrixRXd& m1, const MatrixRXd& m2, int n, int
     fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    bompressed_product_par_threaded(m1, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    bompressed_product_par_threaded(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -81,7 +87,9 @@ MatrixRXd compress_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b
     fft_struct fft2 = init_fft(b, pas.data(), out2.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), compressed.data());
 
-    bompressed_product_par_deluxe(m1, m2, n, b, d, hash, compressed, pas, p, out1, out2, fft1, fft2, ifft1);
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    bompressed_product_par_deluxe(m1t, m2, n, b, d, hash, compressed, pas, p, out1, out2, fft1, fft2, ifft1);
 
     clean_fft(fft1);
     clean_fft(fft2);
@@ -101,7 +109,9 @@ MatrixRXd compress_secret(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b
     fft_struct fft1 = init_fft(b, pas.data(), out.data());
     ifft_struct ifft1 = init_ifft(b, p.data(), pas.data());
 
-    bompressed_product_par_secret_dark_tech_edition(m1, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    bompressed_product_par_secret_dark_tech_edition(m1t, m2, n, b, d, hash, pas, p, out, fft1, ifft1);
 
     clean_fft(fft1);
     clean_ifft(ifft1);
