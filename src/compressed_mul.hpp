@@ -309,10 +309,6 @@ template <typename T>
 void bompressed_product_par_dark(const MatrixRXd& m1, const MatrixRXd& m2, const int n, const int b, const int d, T& hash,
                                  MatrixRXd& compressed, MatrixRXcd& p, MatrixRX2i& hashes1, MatrixRX2i& hashes2,
                                  fft::fft_plan& fft1, fft::fft_plan& ifft1) {
-    int b2 = b / 2 + 1;
-    int mul = 64 / sizeof(int);
-    size_t n_padding = ((n + mul - 1) / mul) * mul;
-
 #pragma omp parallel
     {
         Eigen::ArrayXd pa = Eigen::ArrayXd::Zero(b);
