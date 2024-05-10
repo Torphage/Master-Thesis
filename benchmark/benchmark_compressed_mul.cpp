@@ -188,11 +188,34 @@ int main() {
     std::vector<int> ids;
     std::vector<MatrixRXd> m1s;
     std::vector<MatrixRXd> m2s;
+
     for (int index = 0; index < number_of_lines; index++) {
         int run = runs[index];
         int n = ns[index];
-        int b = bs[index];
-        int d = ds[index];
+        double density = densities[index];
+        int matrix_id = matrix_ids[index];
+        unsigned int matrix_seed = matrix_seeds[index];
+
+        if (matrix_seed == 0) matrix_seed = std::random_device{}();
+
+        if (run == 0) continue;
+
+        if (std::find(ids.begin(), ids.end(), matrix_id) != ids.end()) {
+            continue;
+        }
+
+        ids.push_back(matrix_id);
+        std::mt19937_64 rng(matrix_seed);
+
+        m1s.push_back(sparse_matrix_generator(n, density, rng));
+        m2s.push_back(sparse_matrix_generator(n, density, rng));
+    }
+
+    for (int index = 0; index < number_of_lines; index++) {
+        int run = runs[index];
+        const int n = ns[index];
+        const int b = bs[index];
+        const int d = ds[index];
         double density = densities[index];
         int matrix_id = matrix_ids[index];
         std::string s_hash = hashes[index];
@@ -201,7 +224,6 @@ int main() {
         unsigned int hash_seed = hash_seeds[index];
         int samples = sampless[index];
         int warmup_iterations = warmup_iterationss[index];
-        // int warmup_time = warmup_times[index];
 
         if (hash_seed == 0) hash_seed = std::random_device{}();
 
@@ -220,31 +242,18 @@ int main() {
         config_info.samples = samples;
         config_info.warmup_iterations = warmup_iterations;
 
-        if (std::find(ids.begin(), ids.end(), matrix_id) == ids.end()) {
-            ids.push_back(matrix_id);
+        auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
+        int new_index = std::distance(matrix_ids.begin(), iter);
 
-            MatrixRXd temp1(n, n), temp2(n, n);
-            std::cin.read(reinterpret_cast<char *>(temp1.data()), n * n * sizeof(double));
-            std::cin.read(reinterpret_cast<char *>(temp2.data()), n * n * sizeof(double));
-
-            m1s.push_back(temp1);
-            m2s.push_back(temp2);
-        } else {
-            auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
-            int new_index = std::distance(matrix_ids.begin(), iter);
-
-            config_info.n = ns[new_index];
-            config_info.density = densities[new_index];
-            config_info.matrix_id = matrix_ids[new_index];
-            config_info.matrix_seed = matrix_seeds[new_index];
-        }
+        config_info.n = ns[new_index];
+        config_info.density = densities[new_index];
+        config_info.matrix_id = matrix_ids[new_index];
+        config_info.matrix_seed = matrix_seeds[new_index];
 
         int current_matrix_id = std::find(ids.begin(), ids.end(), matrix_id) - ids.begin();
 
-        MatrixRXd m1 = m1s[current_matrix_id];
-        MatrixRXd m2 = m2s[current_matrix_id];
-
-        usleep(5000000);
+        MatrixRXd &m1 = m1s[current_matrix_id];
+        MatrixRXd &m2 = m2s[current_matrix_id];
 
         if (s_function == "eigen")
             eigen(m1, m2, config_info);
