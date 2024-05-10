@@ -189,7 +189,7 @@ MatrixRXd decompress_par(MatrixRXd& compressed, int n, int b, int d, T& hash) {
 template <typename T>
 MatrixRXd decompress_threaded(MatrixRXd& compressed, int n, int b, int d, T& hash) {
     MatrixRXd result = MatrixRXd::Zero(n, n);
-    MatrixRXd xt = MatrixRXd::Zero(n, d);
+    MatrixRXd xt = MatrixRXd::Zero(omp_get_max_threads(), d);
 
     debompress_matrix_par_threaded(compressed, n, b, d, hash, result, xt);
     return result;

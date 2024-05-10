@@ -201,7 +201,7 @@ static void decompress_threaded(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int 
 
     config_info.name = "Decompress - Threaded";
     bompressed_product_par<T>(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
-    benchmark_timer::benchmark(config_info, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
+    benchmark_timer::benchmark(config_info, debompress_matrix_par_threaded<T>, compressed, n, b, d, hash, result, xt);
 
     fft::clean_fft(fft1);
     fft::clean_fft(fft2);
