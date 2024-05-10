@@ -23,7 +23,7 @@ def chunks(lst, n):
         
 def get_list_from_ranges(s):
     available_threads = []
-    ranges = substr.split(",")
+    ranges = s.split(",")
     for r in ranges:
         if r.find("-") != -1:
             indices = r.split("-")
@@ -32,6 +32,7 @@ def get_list_from_ranges(s):
             available_threads += list(range(start, end + 1))
         else:
             available_threads += int(r)
+    return available_threads
 
 if __name__ == "__main__":
     infos = subprocess.check_output(["""grep -E 'processor|physical id|core id' /proc/cpuinfo"""], shell=True).decode("utf-8")
@@ -45,7 +46,7 @@ if __name__ == "__main__":
         end_index = run_info.find(" ", index)
         substr = run_info[index:end_index]
         print(substr)
-        get_list_from_ranges(substr)
+        available_threads = get_list_from_ranges(substr)
         is_slurm = True
     except:
         available_threads = [i for i in range(len(lines))]
