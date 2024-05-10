@@ -222,17 +222,17 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
         MatrixRXcd ps0 = MatrixRXcd::Zero(d, b);
         MatrixRXcd out10(d, b / 2 + 1);
         MatrixRXcd out20(d, b / 2 + 1);
-        fft_struct fft10 = init_fft(b, pas0.data(), out10.data());
-        fft_struct fft20 = init_fft(b, pbs0.data(), out20.data());
-        ifft_struct ifft0 = init_ifft(b, ps0.data(), compressed0.data());
+        fft::fft_struct fft10 = fft::init_fft_struct(b, pas0.data(), out10.data());
+        fft::fft_struct fft20 = fft::init_fft_struct(b, pbs0.data(), out20.data());
+        fft::ifft_struct ifft0 = fft::init_ifft_struct(b, ps0.data(), compressed0.data());
 
         BENCHMARK("Parallel Compress - Original") {
             bompressed_product_par(m1, m2, n, b, d, hash, compressed0, pas0, pbs0, ps0, out10, out20, fft10, fft20, ifft0);
         };
 
-        clean_fft(fft10);
-        clean_fft(fft20);
-        clean_ifft(ifft0);
+        fft::clean_fft(fft10);
+        fft::clean_fft(fft20);
+        fft::clean_ifft(ifft0);
     }
 
     {
@@ -243,17 +243,17 @@ TEST_CASE("Benchmarks", "[!benchmark]") {
         MatrixRXcd ps = MatrixRXcd::Zero(d, b);
         MatrixRXcd out1(num_threads, b / 2 + 1);
         MatrixRXcd out2(num_threads, b / 2 + 1);
-        fft_struct fft1 = init_fft(b, pas.data(), out1.data());
-        fft_struct fft2 = init_fft(b, pbs.data(), out2.data());
-        ifft_struct ifft1 = init_ifft(b, ps.data(), compressed.data());
+        fft::fft_struct fft1 = fft::init_fft_struct(b, pas.data(), out1.data());
+        fft::fft_struct fft2 = fft::init_fft_struct(b, pbs.data(), out2.data());
+        fft::ifft_struct ifft1 = fft::init_ifft_struct(b, ps.data(), compressed.data());
 
         BENCHMARK("Parallel Compress - Threads") {
             bompressed_product_par_threaded(m1, m2, n, b, d, hash, compressed, pas, pbs, ps, out1, out2, fft1, fft2, ifft1);
         };
 
-        clean_fft(fft1);
-        clean_fft(fft2);
-        clean_ifft(ifft1);
+        fft::clean_fft(fft1);
+        fft::clean_fft(fft2);
+        fft::clean_ifft(ifft1);
     }
 
     // BENCHMARK("Parallel Compress") {

@@ -22,9 +22,9 @@ struct Hashes {
 };
 
 /**
- * @brief 
- * 
- * @tparam Word 
+ * @brief
+ *
+ * @tparam Word
  */
 template <typename Word>
 class FullyRandomHash {
@@ -45,7 +45,7 @@ class FullyRandomHash {
      * @param d is the number of hash functions that will be used
      * @param seed
      */
-    FullyRandomHash(int n, int b, int d, int seed) {
+    FullyRandomHash(const int n, const int b, const int d, int seed) {
         h1.resize(d, n);
         h2.resize(d, n);
         s1.resize(d, n);
@@ -72,16 +72,16 @@ class FullyRandomHash {
      * @param range is the *unused* range to which values are hashed
      * @return Word The hashed value
      */
-    Word operator()(MatrixType& coeffs, int index, int x, int) const {
+    Word operator()(MatrixType& coeffs, int index, int x, const int) const {
         return coeffs(index, x);
     }
 };
 
 /**
- * @brief 
- * 
- * @tparam Word 
- * @tparam SmallWord 
+ * @brief
+ *
+ * @tparam Word
+ * @tparam SmallWord
  */
 template <typename Word, typename SmallWord>
 class MultiplyShiftHash {
@@ -101,7 +101,7 @@ class MultiplyShiftHash {
      * @param d
      * @param seed
      */
-    MultiplyShiftHash(int d, int seed) {
+    MultiplyShiftHash(const int d, int seed) {
         h1.resize(d, 2);
         h2.resize(d, 2);
         s1.resize(d, 2);
@@ -127,25 +127,25 @@ class MultiplyShiftHash {
      * @param range is the range to which values are hashed
      * @return SmallWord The hashed value
      */
-    SmallWord operator()(MatrixType& coeffs, int index, SmallWord x, SmallWord range) const {
+    SmallWord operator()(MatrixType& coeffs, int index, SmallWord x, const SmallWord range) const {
         return (range * ((coeffs(index, 0) * x + coeffs(index, 1)) >> size)) >> size;
     }
 };
 
 /**
  * @brief A constexpr ceil function with the sole purpose of speeding up tabulation hashing
- * 
+ *
  * @param dividend is the divident
  * @param divisor is the divisor
- * @return constexpr int 
+ * @return constexpr int
  */
 constexpr int constexpr_ceil(int dividend, int divisor) {
     return (dividend + divisor - 1) / divisor;
 }
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @tparam WordIn is the number of bits in the key to be hashed
  * @tparam WordOut is the number of bits of the values that are hashed to
  * @tparam r is the block size, i.e the number of blocks that the key is divided into
@@ -171,12 +171,12 @@ class TabulationHash {
      * @param d is the number of hash functions that will be used
      * @param seed
      */
-    TabulationHash(int d, int seed) {
+    TabulationHash(const int d, int seed) {
         std::mt19937_64 rng(seed);
         std::uniform_int_distribution<WordOut> uni(0, std::numeric_limits<WordOut>::max());
 
         int size = 1 << r;
-        
+
         h1.resize(t * d, size);
         h2.resize(t * d, size);
         s1.resize(t * d, size);
@@ -191,6 +191,7 @@ class TabulationHash {
             }
         }
     };
+
     /**
      * @brief A tabulation hash function
      *
@@ -200,8 +201,7 @@ class TabulationHash {
      * @param range is the range to which values are hashed
      * @return WordOut The hashed value
      */
-    WordOut operator()(MatrixType& coeffs, int index, int x, int range) const {
-        
+    WordOut operator()(MatrixType& coeffs, int index, int x, const int range) const {
         WordOut res = 0;
         constexpr WordOut mask = (1 << r) - 1;
 

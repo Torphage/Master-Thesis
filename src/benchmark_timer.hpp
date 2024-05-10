@@ -12,11 +12,13 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <unistd.h>
 
 namespace benchmark_timer {
 
 std::stringstream suitable_prefix(double num);
 void print_header();
+void print_start_info(benchmark_json::config_information& config_info);
 void print_pre_run_info(benchmark_json::config_information& config_info, const double time);
 void print_benchmark(benchmark_json::config_information& config_info);
 
@@ -120,6 +122,7 @@ template <class Lambda, class... Args>
 void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Args&&... args) {
     std::vector<double> warmup_vec(config_info.warmup_iterations);
     std::vector<double> vec(config_info.samples);
+    print_start_info(config_info);
 
     int estimation_samples = static_cast<int>(std::min(100.0, std::ceil(config_info.warmup_iterations / 20.0)));
     int i = 0;

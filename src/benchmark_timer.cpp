@@ -71,12 +71,24 @@ std::stringstream suitable_prefix(double num) {
     return ss;
 }
 
-void print_pre_run_info(benchmark_json::config_information& config_info, const double time) {
+void print_start_info(benchmark_json::config_information& config_info) {
     if (config_info.name.size() > 37) {
-        std::cout << std::left << std::setw(38) << config_info.name << std::endl
+        std::cout << "" << std::left << std::setw(38) << config_info.name << std::endl
                   << std::left << std::setw(38) << "";
     } else {
-        std::cout << std::left << std::setw(38) << config_info.name;
+        std::cout << "" << std::left << std::setw(38) << config_info.name;
+    }
+    std::cout << std::right << std::setw(15) << config_info.samples;
+    std::cout << std::right << std::setw(15) << config_info.warmup_iterations << std::endl;
+    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::flush;
+}
+
+void print_pre_run_info(benchmark_json::config_information& config_info, const double time) {
+    if (config_info.name.size() > 37) {
+        std::cout << "\033[1A\r" << std::left << std::setw(38) << config_info.name << std::endl
+                  << std::left << std::setw(38) << "";
+    } else {
+        std::cout << "\033[1A\r" << std::left << std::setw(38) << config_info.name;
     }
     std::cout << std::right << std::setw(15) << config_info.samples;
     std::cout << std::right << std::setw(15) << config_info.warmup_iterations;

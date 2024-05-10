@@ -18,10 +18,6 @@
 #include <iostream>
 #include <vector>
 
-/*
-MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p, MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft
-*/
-
 /**
  * @brief Compresses a matrix multiplication according to Pagh's algorithm found in
  *        "Compressed Matrix Multiplication" (2013). This will need to be decompressed in order to
@@ -49,8 +45,8 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
     std::vector<Complex> out1(b / 2 + 1);
     std::vector<Complex> out2(b / 2 + 1);
 
-    fft_struct fft1 = init_fft(b, pa.data(), out1.data());
-    fft_struct fft2 = init_fft(b, pb.data(), out2.data());
+    fft::fft_struct fft1 = fft::init_fft_struct(b, pa.data(), out1.data());
+    fft::fft_struct fft2 = fft::init_fft_struct(b, pb.data(), out2.data());
 
     for (t = 0; t < d; t++) {
         for (k = 0; k < n; k++) {
@@ -62,8 +58,8 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
                 pb(hash(hash.h2, t, i, b)) += (2 * hash(hash.s2, t, i, 2) - 1) * m2(k, i);
             }
 
-            fft(fft1, 0, 0);
-            fft(fft2, 0, 0);
+            fft::fft(fft1, 0, 0);
+            fft::fft(fft2, 0, 0);
 
             for (i = 0; i < b / 2 + 1; i++) {
                 p(t, i) += out1[i] * out2[i];
@@ -71,18 +67,18 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
         }
     }
 
-    clean_fft(fft1);
-    clean_fft(fft2);
+    fft::clean_fft(fft1);
+    fft::clean_fft(fft2);
 
     MatrixRXd result = MatrixRXd::Zero(d, b);
-    ifft_struct info = init_ifft(b, p.data(), result.data());
+    fft::ifft_struct info = fft::init_ifft_struct(b, p.data(), result.data());
 
     for (int t = 0; t < d; t++) {
         ifft(info, t * b, t * b);
     }
 
     result /= b;
-    clean_ifft(info);
+    fft::clean_ifft(info);
 
     return result;
 }
@@ -90,29 +86,28 @@ MatrixRXd compressed_product(const MatrixRXd& m1, const MatrixRXd& m2, int b, in
 template <typename T>
 void bompressed_product_seq(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
                             MatrixRXd& compressed, ArrayRXd& pa, MatrixRXcd& p,
-                            ArrayRXcd& out1, fft_struct fft1, ifft_struct ifft1) {
-    auto left_out = out1.leftCols(b / 2 + 1);
-    auto right_out = out1.rightCols(b / 2 + 1);
-
+                            Eigen::Array<Complex, 2, Eigen::Dynamic, Eigen::RowMajor>& out, fft::fft_struct fft1, fft::ifft_struct ifft1) {
+    int fft2_offset = b / 2 + 1;
     for (int t = 0; t < d; t++) {
         for (int k = 0; k < n; k++) {
             pa.setZero();
-
             for (int i = 0; i < n; i++) {
-                // ? Can we get rid of this static_cast? <--- bozo
-                pa(static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(k, i);
-                pa(b + static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
+                pa(hash(hash.h1, t, i, b)) += (2 * hash(hash.s1, t, i, 2) - 1) * m1(k, i);
             }
+            fft::fft(fft1, 0, 0);
 
-            fft(fft1, 0, 0);
-            fft(fft1, b, b / 2 + 1);
+            pa.setZero();
+            for (int i = 0; i < n; i++) {
+                pa(hash(hash.h2, t, i, b)) += (2 * hash(hash.s2, t, i, 2) - 1) * m2(k, i);
+            }
+            fft::fft(fft1, 0, fft2_offset);
 
-            p.row(t) += left_out * right_out;
+            p.row(t) += out.row(0) * out.row(1);
         }
     }
 
     for (int t = 0; t < d; t++) {
-        ifft(ifft1, t * (b / 2 + 1), t * b);
+        fft::ifft(ifft1, t * fft2_offset, t * b);
     }
 
     compressed /= b;
@@ -121,7 +116,7 @@ void bompressed_product_seq(const MatrixRXd& m1, const MatrixRXd& m2, int n, int
 template <typename T>
 void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
                             MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
-                            MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+                            MatrixRXcd& out1, MatrixRXcd& out2, fft::fft_struct fft1, fft::fft_struct fft2, fft::ifft_struct ifft1) {
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
         int in_offset = t * b;
@@ -131,13 +126,12 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int n, int
             pbs.row(t).setZero();
 
             for (int i = 0; i < n; i++) {
-                // ? Can we get rid of this static_cast? <--- bozo
                 pas(t, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(k, i);
                 pbs(t, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
             }
 
-            fft(fft1, in_offset, out_offset);
-            fft(fft2, in_offset, out_offset);
+            fft::fft(fft1, in_offset, out_offset);
+            fft::fft(fft2, in_offset, out_offset);
 
             p.row(t).array() += out1.row(t).array() * out2.row(t).array();
         }
@@ -145,7 +139,7 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int n, int
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
-        ifft(ifft1, t * (b / 2 + 1), t * b);
+        fft::ifft(ifft1, t * (b / 2 + 1), t * b);
     }
 
     compressed /= b;
@@ -154,7 +148,7 @@ void bompressed_product_par(const MatrixRXd& m1, const MatrixRXd& m2, int n, int
 template <typename T>
 void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
                                      MatrixRXd& compressed, MatrixRXd& pas, MatrixRXd& pbs, MatrixRXcd& p,
-                                     MatrixRXcd& out1, MatrixRXcd& out2, fft_struct fft1, fft_struct fft2, ifft_struct ifft1) {
+                                     MatrixRXcd& out1, MatrixRXcd& out2, fft::fft_struct fft1, fft::fft_struct fft2, fft::ifft_struct ifft1) {
 #pragma omp parallel
     {
         int thread_num = omp_get_thread_num();
@@ -167,13 +161,12 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
                 pbs.row(thread_num).setZero();
 
                 for (int i = 0; i < n; i++) {
-                    // ? Can we get rid of this static_cast? <--- bozo
                     pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(k, i);
                     pbs(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset);
-                fft(fft2, in_offset, out_offset);
+                fft::fft(fft1, in_offset, out_offset);
+                fft::fft(fft2, in_offset, out_offset);
 
 #pragma omp critical
                 p.row(t).array() += out1.row(thread_num).array() * out2.row(thread_num).array();
@@ -183,7 +176,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
 
 #pragma omp parallel for
     for (int t = 0; t < d; t++) {
-        ifft(ifft1, t * b, t * b);
+        fft::ifft(ifft1, t * b, t * b);
     }
 
     compressed /= b;
@@ -192,7 +185,7 @@ void bompressed_product_par_threaded(const MatrixRXd& m1, const MatrixRXd& m2, i
 template <typename T>
 void bompressed_product_par_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
                                    MatrixRXd& compressed, MatrixRXd& pas, MatrixRXcd& p, MatrixRXcd& out1,
-                                   MatrixRXcd& out2, const fft_struct fft1, const fft_struct fft2, const ifft_struct ifft1) {
+                                   MatrixRXcd& out2, const fft::fft_struct fft1, const fft::fft_struct fft2, const fft::ifft_struct ifft1) {
 #pragma omp parallel
     {
         int thread_num = omp_get_thread_num();
@@ -203,26 +196,25 @@ void bompressed_product_par_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int
             for (int k = 0; k < n; k++) {
                 pas.row(thread_num).setZero();
 
-                for (int i = 0; i < n; i++) {  // We compute the hashes waaaaaaaaay more times than necessary
-                    // pas(t, t) = m1(i, k);
+                for (int i = 0; i < n; i++) {
                     pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset);
+                fft::fft(fft1, in_offset, out_offset);
 
                 pas.row(thread_num).setZero();
                 for (int i = 0; i < n; i++) {
                     pas(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
                 }
 
-                fft(fft2, in_offset, out_offset);
+                fft::fft(fft2, in_offset, out_offset);
 
                 p.row(t) += out1.row(thread_num) * out2.row(thread_num);
             }
         }
 #pragma omp for
         for (int t = 0; t < d; t++) {
-            ifft(ifft1, t * (b / 2 + 1), t * b);
+            fft::ifft(ifft1, t * (b / 2 + 1), t * b);
             compressed.row(t) /= b;
         }
     }
@@ -231,7 +223,7 @@ void bompressed_product_par_deluxe(const MatrixRXd& m1, const MatrixRXd& m2, int
 template <typename T>
 void bompressed_product_par_secret_dark_tech_edition(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
                                                      MatrixRXd& pas, MatrixRXcd& p,
-                                                     MatrixRXcd& out1, const fft_struct fft1, const ifft_struct ifft1) {
+                                                     MatrixRXcd& out1, const fft::fft_struct fft1, const fft::ifft_struct ifft1) {
 #pragma omp parallel
     {
         int thread_num = 2 * omp_get_thread_num();
@@ -246,21 +238,21 @@ void bompressed_product_par_secret_dark_tech_edition(const MatrixRXd& m1, const 
                     pas(thread_num, static_cast<int>(hash(hash.h1, t, i, b))) += (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * m1(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset);
+                fft::fft(fft1, in_offset, out_offset);
                 pas.row(thread_num).setZero();
 
                 for (int i = 0; i < n; i++) {
                     pas(thread_num, static_cast<int>(hash(hash.h2, t, i, b))) += (2 * static_cast<int>(hash(hash.s2, t, i, 2)) - 1) * m2(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset + 2 * omp_get_max_threads() * (b / 2 + 1));
+                fft::fft(fft1, in_offset, out_offset + 2 * omp_get_max_threads() * (b / 2 + 1));
 
                 p.row(t) += out1.row(thread_num) * out1.row(thread_num + 2 * omp_get_max_threads());
             }
         }
 #pragma omp for
         for (int t = 0; t < d; t++) {
-            ifft(ifft1, t * (b / 2 + 1), t * b);
+            fft::ifft(ifft1, t * (b / 2 + 1), t * b);
             pas.row(t) /= b;
         }
     }
@@ -268,8 +260,8 @@ void bompressed_product_par_secret_dark_tech_edition(const MatrixRXd& m1, const 
 
 template <typename T>
 void bompressed_product_par_secret_dark_tech_edition2(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, int d, T& hash,
-                                                      MatrixRXd& pas, MatrixRXcd& p,
-                                                      MatrixRXcd& out1, const fft_struct fft1, const ifft_struct ifft1) {
+                                                      MatrixRXd& pas, MatrixRXcd& p, MatrixRXcd& out1,
+                                                      fft::fft_struct fft1, fft::ifft_struct ifft1) {
     std::vector<std::tuple<int, double>> aids1(n);
     std::vector<std::tuple<int, double>> aids2(n);
 #pragma omp parallel
@@ -292,7 +284,7 @@ void bompressed_product_par_secret_dark_tech_edition2(const MatrixRXd& m1, const
                     pas(thread_num, std::get<0>(aids1[i])) += std::get<1>(aids1[i]) * m1(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset);
+                fft::fft(fft1, in_offset, out_offset);
 
                 pas.row(thread_num).setZero();
 
@@ -300,15 +292,74 @@ void bompressed_product_par_secret_dark_tech_edition2(const MatrixRXd& m1, const
                     pas(thread_num, std::get<0>(aids2[i])) += std::get<1>(aids2[i]) * m2(k, i);
                 }
 
-                fft(fft1, in_offset, out_offset + 2 * omp_get_max_threads() * (b / 2 + 1));
+                fft::fft(fft1, in_offset, out_offset + 2 * omp_get_max_threads() * (b / 2 + 1));
 
                 p.row(t) += out1.row(thread_num) * out1.row(thread_num + 2 * omp_get_max_threads());
             }
         }
 #pragma omp for
         for (int t = 0; t < d; t++) {
-            ifft(ifft1, t * (b / 2 + 1), t * b);
+            fft::ifft(ifft1, t * (b / 2 + 1), t * b);
             pas.row(t) /= b;
+        }
+    }
+}
+
+template <typename T>
+void bompressed_product_par_dark(const MatrixRXd& m1, const MatrixRXd& m2, const int n, const int b, const int d, T& hash,
+                                 MatrixRXd& compressed, MatrixRXcd& p, MatrixRX2i& hashes1, MatrixRX2i& hashes2,
+                                 fft::fft_plan& fft1, fft::fft_plan& ifft1) {
+    int b2 = b / 2 + 1;
+    int mul = 64 / sizeof(int);
+    size_t n_padding = ((n + mul - 1) / mul) * mul;
+
+#pragma omp parallel
+    {
+        Eigen::ArrayXd pa = Eigen::ArrayXd::Zero(b);
+        Eigen::ArrayXcd out1 = Eigen::ArrayXcd::Zero(b / 2 + 1);
+        Eigen::ArrayXcd out2 = Eigen::ArrayXcd::Zero(b / 2 + 1);
+
+        for (int t = 0; t < d; t++) {
+#pragma omp single
+            {
+#pragma omp task
+                for (int i = 0; i < n; i++) {
+                    hashes1(i, 0) = hash(hash.h1, t, i, b);
+                }
+#pragma omp task
+                for (int i = 0; i < n; i++) {
+                    hashes1(i, 1) = 2 * hash(hash.s1, t, i, 2) - 1;
+                }
+#pragma omp task
+                for (int i = 0; i < n; i++) {
+                    hashes2(i, 0) = hash(hash.h2, t, i, b);
+                }
+#pragma omp task
+                for (int i = 0; i < n; i++) {
+                    hashes2(i, 1) = 2 * hash(hash.s2, t, i, 2) - 1;
+                }
+            }
+#pragma omp for schedule(auto) reduction(+ : p)
+            for (int k = 0; k < n; k++) {
+                pa.setZero();
+                for (int i = 0; i < n; i++) {
+                    pa(hashes1(i, 0)) += hashes1(i, 1) * m1(k, i);
+                }
+                fft::execute_fft(fft1, pa.data(), out1.data());
+
+                pa.setZero();
+                for (int i = 0; i < n; i++) {
+                    pa(hashes2(i, 0)) += hashes2(i, 1) * m2(k, i);
+                }
+                fft::execute_fft(fft1, pa.data(), out2.data());
+
+                p.row(t) += out1 * out2;
+            }
+        }
+#pragma omp for
+        for (int t = 0; t < d; t++) {
+            fft::execute_ifft(ifft1, p.row(t).data(), compressed.row(t).data());
+            compressed.row(t) /= b;
         }
     }
 }
@@ -466,6 +517,37 @@ void debompress_matrix_par_threaded(const MatrixRXd& p, int n, int b, int d, T& 
                     std::nth_element(row, row + (d - 1) / 2, row + d);
                     median2 = xt(thread_num, d / 2 - 1);
                     c(i, j) = (median1 + median2) / 2.0;
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void debompress_matrix_par_dark(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& result) {
+#pragma omp parallel
+    {
+        Eigen::ArrayXd xt(d);
+        double* row = xt.data();
+        double* start = row + d / 2;
+        double* start2 = row + (d - 1) / 2;
+        double* end = row + d;
+#pragma omp for
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                for (int t = 0; t < d; t++) {
+                    xt(t) = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
+                            p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
+                }
+
+                // Median calculations
+                std::nth_element(row, start, end);
+
+                if (d % 2 != 0) {
+                    result(i, j) = xt(d / 2);
+                } else {
+                    std::nth_element(row, start2, end);
+                    result(i, j) = (xt(d / 2) + xt(d / 2 - 1)) / 2.0;
                 }
             }
         }

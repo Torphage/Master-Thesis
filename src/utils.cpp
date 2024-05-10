@@ -3,20 +3,20 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <random>
+#include <vector>
 
 MatrixRXd sparse_matrix_generator(int n, float density, std::mt19937_64 &rng) {
     std::uniform_real_distribution<float> uni(-1.0, 1.0);
     MatrixRXd m = MatrixRXd::NullaryExpr(n, n, [&]() { return uni(rng); });
-    ;
 
     int num_zeros = static_cast<int>(n * n * (1 - density));
     std::vector<int> indices(n * n);
-    for (int i = 0; i < n * n; i++) {
-        indices[i] = i;
-    }
-
+    std::iota(std::begin(indices), std::end(indices), 0);
     std::shuffle(indices.begin(), indices.end(), rng);
+
+#pragma omp for
     for (int i = 0; i < num_zeros; i++) {
         int index = indices[i];
         m(index / n, index % n) = 0.0;

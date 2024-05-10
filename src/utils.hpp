@@ -19,25 +19,33 @@ typedef std::complex<double> Complex;
  */
 typedef Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXd;
 
+typedef Eigen::Array<int, Eigen::Dynamic, 2, Eigen::RowMajor> MatrixRX2i;
+typedef Eigen::Array<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXi;
+
+// typedef Eigen::Array<int, Eigen::Dynamic, 1, Eigen::RowMajor> MatrixRX1i;
+
 /**
  * @brief A row-major matrix of dynamic size, with type std::complex<doubles>
  */
 typedef Eigen::Array<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRXcd;
 
-/**
- * @brief A row-major matrix of dynamic size, with type std::complex<uint64_t>
- */
-typedef Eigen::Array<uint64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXui;
-
 typedef Eigen::Array<double, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXd;
 
 typedef Eigen::Array<Complex, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXcd;
 
+// typedef Eigen::Array<Complex, 1, Eigen::Dynamic, Eigen::RowMajor> ArrayRXXd
+
 #pragma omp declare reduction(+ : ArrayRXcd : omp_out += omp_in) \
     initializer(omp_priv = ArrayRXcd::Zero(omp_orig.size()))
 
+#pragma omp declare reduction(+ : MatrixRXd : omp_out += omp_in) \
+    initializer(omp_priv = MatrixRXd::Zero(omp_orig.rows(), omp_orig.cols()))
+
 #pragma omp declare reduction(+ : MatrixRXcd : omp_out += omp_in) \
     initializer(omp_priv = MatrixRXcd::Zero(omp_orig.rows(), omp_orig.cols()))
+
+#pragma omp declare reduction(+ : Eigen::ArrayXd : omp_out += omp_in) \
+    initializer(omp_priv = Eigen::ArrayXd::Zero(omp_orig.size()))
 
 /**
  * @brief Generates a random sparse square matrix
