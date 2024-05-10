@@ -278,6 +278,8 @@ int main() {
                 decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_dark")
+                decompress_dark<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
         }
@@ -302,6 +304,8 @@ int main() {
                 decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_dark")
+                decompress_dark<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
         }
@@ -326,6 +330,8 @@ int main() {
                 decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_th")
+                decompress_dark<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
         }
