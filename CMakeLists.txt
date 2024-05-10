@@ -16,13 +16,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Disable the Google Benchmark requirement on Google Test
-set(BENCHMARK_ENABLE_TESTING NO)
-
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-if(NOT(M_ARCH STREQUAL ""))
+if(NOT(M_ARCH STREQUAL "") AND (DEFINED M_ARCH))
   message("march defined: ${M_ARCH}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${M_ARCH}")
 else()
@@ -69,7 +66,6 @@ endif(BLAS_PROVIDED)
 # Imports libraries
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Catch2 3 REQUIRED)
-find_package(benchmark REQUIRED)
 find_package(OpenMP REQUIRED)
 
 if(NOT USE_AOCL)
@@ -81,32 +77,8 @@ else()
   set(fftwVar fftw3)
 endif()
 
-############    temp    ############
-
-add_executable(temp "benchmark/temp.cpp")
-
-target_link_libraries(temp Eigen3::Eigen)
-target_link_libraries(temp benchmark::benchmark)
-
-if(OpenMP_FOUND)
-  message("temp: OpenMP found")
-  target_link_libraries(temp OpenMP::OpenMP_CXX)
-endif(OpenMP_FOUND)
-
-if(BLAS_FOUND)
-  message("temp: BLAS found")
-  target_link_libraries(temp ${BLAS_LIBRARIES})
-endif(BLAS_FOUND)
 
 ############ Benchmarks ############
-
-# file(GLOB_RECURSE BENCHMARKS benchmark/benchmark_compressed_mul.cpp benchmark/benchmark_compressed_mul.hpp src/*.cpp src/*.hpp include/*.hpp)
-# FOREACH(item ${BENCHMARKS})
-#   IF(${item} MATCHES "src/main.cpp")
-#     LIST(REMOVE_ITEM BENCHMARKS ${item})
-#   ENDIF(${item} MATCHES "src/main.cpp")
-# ENDFOREACH(item)
-# add_executable(benchmarks ${BENCHMARKS})
 
 add_executable(benchmarks 
         benchmark/benchmark_compressed_mul.cpp 
@@ -135,6 +107,7 @@ if(BLAS_FOUND)
   target_link_libraries(benchmarks ${BLAS_LIBRARIES})
 endif(BLAS_FOUND)
 
+
 ############ Input generator ############
 
 add_executable(input_generator 
@@ -153,7 +126,6 @@ endif(OpenMP_FOUND)
 if(BLAS_FOUND)
   target_link_libraries(input_generator ${BLAS_LIBRARIES})
 endif(BLAS_FOUND)
-
 
 
 ############ Main program ############
@@ -214,13 +186,11 @@ if(BLAS_PROVIDED)
     target_compile_definitions(tests PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(benchmarks PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(input_generator PUBLIC EIGEN_USE_MKL_ALL)
-    target_compile_definitions(temp PUBLIC EIGEN_USE_MKL_ALL)
   elseif (NOT USE_MKL)
     target_compile_definitions(app PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(tests PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(benchmarks PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(input_generator PUBLIC EIGEN_USE_BLAS)
-    target_compile_definitions(temp PUBLIC EIGEN_USE_BLAS)
   endif()
 endif(BLAS_PROVIDED)
 
