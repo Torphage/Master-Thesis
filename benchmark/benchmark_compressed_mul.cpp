@@ -274,8 +274,10 @@ int main() {
                 compress_secret2<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_dark")
                 compress_dark<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "decompress")
-                decompress<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_seq")
+                decompress_seq<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_par")
+                decompress_par<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<FullyRandomHash<int>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_dark")
@@ -300,8 +302,10 @@ int main() {
                 compress_secret2<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_dark")
                 compress_dark<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "decompress")
-                decompress<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_seq")
+                decompress_seq<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_par")
+                decompress_par<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<MultiplyShiftHash<uint32_t, uint16_t>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_dark")
@@ -326,11 +330,13 @@ int main() {
                 compress_secret2<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "compress_dark")
                 compress_dark<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "decompress")
-                decompress<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_seq")
+                decompress_seq<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
+            if (s_function == "decompress_par")
+                decompress_par<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "decompress_th" || s_function == "decompress_threaded")
                 decompress_threaded<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
-            if (s_function == "decompress_th")
+            if (s_function == "decompress_dark")
                 decompress_dark<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);
             if (s_function == "both")
                 both<TabulationHash<uint32_t, uint32_t, 8>>(m1, m2, n, b, d, hash, config_info);

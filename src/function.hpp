@@ -178,6 +178,15 @@ MatrixRXd compress_dark(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, 
 // };
 
 template <typename T>
+MatrixRXd decompress_seq(MatrixRXd& compressed, int n, int b, int d, T& hash) {
+    MatrixRXd result = MatrixRXd::Zero(n, n);
+    Eigen::ArrayXd xt = Eigen::ArrayXd::Zero(d);
+
+    debompress_matrix_seq(compressed, n, b, d, hash, result, xt);
+    return result;
+}
+
+template <typename T>
 MatrixRXd decompress_par(MatrixRXd& compressed, int n, int b, int d, T& hash) {
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);

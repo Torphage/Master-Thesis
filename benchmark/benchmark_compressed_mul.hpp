@@ -157,7 +157,33 @@ static void compress_dark(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& 
 }
 
 template <class T>
-static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
+static void decompress_seq(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
+    MatrixRXd compressed = MatrixRXd::Zero(d, b);
+    MatrixRXd pas = MatrixRXd::Zero(d, b);
+    MatrixRXd pbs = MatrixRXd::Zero(d, b);
+    MatrixRXcd p = MatrixRXcd::Zero(d, b / 2 + 1);
+    MatrixRXcd out1(d, b / 2 + 1);
+    MatrixRXcd out2(d, b / 2 + 1);
+    fft::fft_struct fft1 = fft::init_fft_struct(b, pas.data(), out1.data());
+    fft::fft_struct fft2 = fft::init_fft_struct(b, pbs.data(), out2.data());
+    fft::ifft_struct ifft1 = fft::init_ifft_struct(b, p.data(), compressed.data());
+
+    MatrixRXd m1t = m1.matrix().transpose().array();
+
+    MatrixRXd result = MatrixRXd::Zero(n, n);
+    Eigen::ArrayXd xt = Eigen::ArrayXd::Zero(d);
+
+    config_info.name = "Decompress - Sequential";
+    bompressed_product_par<T>(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
+    benchmark_timer::benchmark(config_info, debompress_matrix_seq<T>, compressed, n, b, d, hash, result, xt);
+
+    fft::clean_fft(fft1);
+    fft::clean_fft(fft2);
+    fft::clean_ifft(ifft1);
+}
+
+template <class T>
+static void decompress_par(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& hash, benchmark_json::config_information& config_info) {
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXd pas = MatrixRXd::Zero(d, b);
     MatrixRXd pbs = MatrixRXd::Zero(d, b);
@@ -173,7 +199,7 @@ static void decompress(MatrixRXd& m1, MatrixRXd& m2, int n, int b, int d, T& has
     MatrixRXd result = MatrixRXd::Zero(n, n);
     MatrixRXd xt = MatrixRXd::Zero(n, d);
 
-    config_info.name = "Decompress - Original";
+    config_info.name = "Decompress - Par";
     bompressed_product_par<T>(m1t, m2, n, b, d, hash, compressed, pas, pbs, p, out1, out2, fft1, fft2, ifft1);
     benchmark_timer::benchmark(config_info, debompress_matrix_par<T>, compressed, n, b, d, hash, result, xt);
 

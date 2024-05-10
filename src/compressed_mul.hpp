@@ -451,6 +451,32 @@ MatrixRXd decompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T hash)
 }
 
 template <typename T>
+void debompress_matrix_seq(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& result, Eigen::ArrayXd& xt) {
+    double* row = xt.data();
+    double* start = row + d / 2;
+    double* start2 = row + (d - 1) / 2;
+    double* end = row + d;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int t = 0; t < d; t++) {
+                xt(t) = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
+                        p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
+            }
+
+            // Median calculations
+            std::nth_element(row, start, end);
+
+            if (d % 2 != 0) {
+                result(i, j) = xt(d / 2);
+            } else {
+                std::nth_element(row, start2, end);
+                result(i, j) = (xt(d / 2) + xt(d / 2 - 1)) / 2.0;
+            }
+        }
+    }
+}
+
+template <typename T>
 void debompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& c, MatrixRXd& xt) {
     double* start = xt.data();
 
