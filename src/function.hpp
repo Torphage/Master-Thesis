@@ -125,15 +125,13 @@ MatrixRXd compress_dark(const MatrixRXd& m1, const MatrixRXd& m2, int n, int b, 
 
     MatrixRXd compressed = MatrixRXd::Zero(d, b);
     MatrixRXcd p = MatrixRXcd::Zero(d, b2);
-    MatrixRX2i hashes1 = MatrixRX2i::Zero(n, 2);
-    MatrixRX2i hashes2 = MatrixRX2i::Zero(n, 2);
     MatrixRXcd out(d, b2);
     fft::fft_plan fft1 = fft::init_fft(b, compressed.data(), out.data());
     fft::fft_plan ifft1 = fft::init_ifft(b, p.data(), compressed.data());
 
     MatrixRXd m1t = m1.matrix().transpose().array();
 
-    bompressed_product_par_dark(m1t, m2, n, b, d, hash, compressed, p, hashes1, hashes2, fft1, ifft1);
+    bompressed_product_par_dark(m1t, m2, n, b, d, hash, compressed, p, fft1, ifft1);
 
     fft::clean(fft1);
     fft::clean(ifft1);

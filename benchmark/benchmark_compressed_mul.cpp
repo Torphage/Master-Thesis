@@ -139,7 +139,7 @@ static void BM_cwise_product(int n, MatrixRXd &m1, MatrixRXd &m2, benchmark_json
     benchmark_timer::benchmark(config_info, cwise_product, c, n, m1, m2);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     auto start = std::chrono::steady_clock::now();
 
     std::cout << "----- Settings -----" << std::endl;
@@ -159,13 +159,20 @@ int main() {
 
     benchmark_timer::print_header();
 
-    rapidcsv::Document doc("input.csv",
-                           rapidcsv::LabelParams(),
-                           rapidcsv::SeparatorParams(),
-                           rapidcsv::ConverterParams(),
-                           rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
-                                                      '#' /* pCommentPrefix */,
-                                                      true /* pSkipEmptyLines */));
+    std::string input_file;
+    if (argc >= 2) {
+        input_file = argv[1];
+    } else {
+        input_file = "input.csv";
+    }
+    rapidcsv::Document doc(input_file,
+                        rapidcsv::LabelParams(),
+                        rapidcsv::SeparatorParams(),
+                        rapidcsv::ConverterParams(),
+                        rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
+                                                    '#' /* pCommentPrefix */,
+                                                    true /* pSkipEmptyLines */));
+
 
     std::vector<int> runs = doc.GetColumn<int>("run");
     std::vector<std::string> hashes = doc.GetColumn<std::string>("hash");
@@ -369,7 +376,11 @@ int main() {
 
     std::cout << "Total benchmarking duration: " << benchmark_timer::suitable_prefix(total_duration).str() << std::endl;
 
-    benchmark_json::write_file("benchmark.json", info);
+    if (argc >= 3) {
+        benchmark_json::write_file(argv[2], info);
+    } else {
+        benchmark_json::write_file("benchmark.json", info);
+    }
 
     return 0;
 }

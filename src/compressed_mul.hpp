@@ -307,7 +307,7 @@ void bompressed_product_par_secret_dark_tech_edition2(const MatrixRXd& m1, const
 
 template <typename T>
 void bompressed_product_par_dark(const MatrixRXd& m1, const MatrixRXd& m2, const int n, const int b, const int d, T& hash,
-                                 MatrixRXd& compressed, MatrixRXcd& p, MatrixRX2i& hashes1, MatrixRX2i& hashes2,
+                                 MatrixRXd& compressed, MatrixRXcd& p,
                                  fft::fft_plan& fft1, fft::fft_plan& ifft1) {
 #pragma omp parallel
     {
@@ -316,36 +316,17 @@ void bompressed_product_par_dark(const MatrixRXd& m1, const MatrixRXd& m2, const
         Eigen::ArrayXcd out2 = Eigen::ArrayXcd::Zero(b / 2 + 1);
 
         for (int t = 0; t < d; t++) {
-#pragma omp single
-            {
-#pragma omp task
-                for (int i = 0; i < n; i++) {
-                    hashes1(i, 0) = hash(hash.h1, t, i, b);
-                }
-#pragma omp task
-                for (int i = 0; i < n; i++) {
-                    hashes1(i, 1) = 2 * hash(hash.s1, t, i, 2) - 1;
-                }
-#pragma omp task
-                for (int i = 0; i < n; i++) {
-                    hashes2(i, 0) = hash(hash.h2, t, i, b);
-                }
-#pragma omp task
-                for (int i = 0; i < n; i++) {
-                    hashes2(i, 1) = 2 * hash(hash.s2, t, i, 2) - 1;
-                }
-            }
 #pragma omp for schedule(auto) reduction(+ : p)
             for (int k = 0; k < n; k++) {
                 pa.setZero();
                 for (int i = 0; i < n; i++) {
-                    pa(hashes1(i, 0)) += hashes1(i, 1) * m1(k, i);
+                    pa(hash(hash.h1, t, i, b)) += (2 * hash(hash.s1, t, i, 2) - 1) * m1(k, i);
                 }
                 fft::execute_fft(fft1, pa.data(), out1.data());
 
                 pa.setZero();
                 for (int i = 0; i < n; i++) {
-                    pa(hashes2(i, 0)) += hashes2(i, 1) * m2(k, i);
+                    pa(hash(hash.h2, t, i, b)) += (2 * hash(hash.s2, t, i, 2) - 1) * m2(k, i);
                 }
                 fft::execute_fft(fft1, pa.data(), out2.data());
 
@@ -426,8 +407,8 @@ MatrixRXd decompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T hash)
 
         for (int j = 0; j < n; j++) {
             for (int t = 0; t < d; t++) {
-                xt[t] = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
-                        p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
+                xt[t] = (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * (2 * static_cast<int>(hash(hash.s2, t, j, 2)) - 1) *
+                        p(t, (static_cast<int>(hash(hash.h1, t, i, b)) + static_cast<int>(hash(hash.h2, t, j, b))) % b);
             }
 
             // Median calculations
@@ -449,23 +430,23 @@ MatrixRXd decompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T hash)
 template <typename T>
 void debompress_matrix_seq(const MatrixRXd& p, int n, int b, int d, T& hash, MatrixRXd& result, Eigen::ArrayXd& xt) {
     double* row = xt.data();
-    double* start = row + d / 2;
-    double* start2 = row + (d - 1) / 2;
+    double* middle_odd = row + d / 2;
+    double* middle_even = row + (d - 1) / 2;
     double* end = row + d;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             for (int t = 0; t < d; t++) {
-                xt(t) = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
-                        p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
+                xt(t) = (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * (2 * static_cast<int>(hash(hash.s2, t, j, 2)) - 1) *
+                        p(t, (static_cast<int>(hash(hash.h1, t, i, b)) + static_cast<int>(hash(hash.h2, t, j, b))) % b);
             }
 
             // Median calculations
-            std::nth_element(row, start, end);
+            std::nth_element(row, middle_odd, end);
 
             if (d % 2 != 0) {
                 result(i, j) = xt(d / 2);
             } else {
-                std::nth_element(row, start2, end);
+                std::nth_element(row, middle_even, middle_odd);
                 result(i, j) = (xt(d / 2) + xt(d / 2 - 1)) / 2.0;
             }
         }
@@ -499,7 +480,7 @@ void debompress_matrix_par(const MatrixRXd& p, int n, int b, int d, T& hash, Mat
                 if (d % 2 != 0) {
                     c(i, j) = median1;
                 } else {
-                    std::nth_element(row, row + (d - 1) / 2, row + d);
+                    std::nth_element(row, row + (d - 1) / 2, row + d / 2);
                     median2 = xt(i, d / 2 - 1);
                     c(i, j) = (median1 + median2) / 2.0;
                 }
@@ -536,7 +517,7 @@ void debompress_matrix_par_threaded(const MatrixRXd& p, int n, int b, int d, T& 
                 if (d % 2 != 0) {
                     c(i, j) = median1;
                 } else {
-                    std::nth_element(row, row + (d - 1) / 2, row + d);
+                    std::nth_element(row, row + (d - 1) / 2, row + d / 2);
                     median2 = xt(thread_num, d / 2 - 1);
                     c(i, j) = (median1 + median2) / 2.0;
                 }
@@ -558,18 +539,20 @@ void debompress_matrix_par_dark(const MatrixRXd& p, int n, int b, int d, T& hash
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 for (int t = 0; t < d; t++) {
-                    xt(t) = (2 * hash(hash.s1, t, i, 2) - 1) * (2 * hash(hash.s2, t, j, 2) - 1) *
-                            p(t, (hash(hash.h1, t, i, b) + hash(hash.h2, t, j, b)) % b);
+                    xt(t) = (2 * static_cast<int>(hash(hash.s1, t, i, 2)) - 1) * (2 * static_cast<int>(hash(hash.s2, t, j, 2)) - 1) *
+                            p(t, (static_cast<int>(hash(hash.h1, t, i, b)) + static_cast<int>(hash(hash.h2, t, j, b))) % b);
                 }
 
                 // Median calculations
                 std::nth_element(row, start, end);
+                double median1 = xt(d / 2);
 
                 if (d % 2 != 0) {
-                    result(i, j) = xt(d / 2);
+                    result(i, j) = median1;
                 } else {
-                    std::nth_element(row, start2, end);
-                    result(i, j) = (xt(d / 2) + xt(d / 2 - 1)) / 2.0;
+                    std::nth_element(row, start2, start);
+                    double median2 = xt(d / 2 - 1);
+                    result(i, j) = (median1 + median2) / 2.0;
                 }
             }
         }
