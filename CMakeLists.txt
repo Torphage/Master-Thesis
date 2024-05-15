@@ -78,6 +78,29 @@ else()
 endif()
 
 
+############ Cov Estimation ############
+
+add_executable(cov
+        src/compressed_mul.hpp
+        src/cov_estimation.cpp
+        src/fft.cpp 
+        src/fft.hpp
+        src/function.hpp
+        src/hashing.hpp
+        src/utils.cpp                 
+        src/utils.hpp)
+
+target_link_libraries(cov Eigen3::Eigen)
+target_link_libraries(cov ${fftwVar})
+
+if(OpenMP_FOUND)
+  target_link_libraries(cov OpenMP::OpenMP_CXX)
+endif(OpenMP_FOUND)
+
+if(BLAS_FOUND)
+  target_link_libraries(cov ${BLAS_LIBRARIES})
+endif(BLAS_FOUND)
+
 ############ Benchmarks ############
 
 add_executable(benchmarks 
@@ -138,6 +161,9 @@ FOREACH(item ${SOURCES})
   IF(${item} MATCHES "src/variance.hpp")
     LIST(REMOVE_ITEM SOURCES ${item})
   ENDIF(${item} MATCHES "src/variance.hpp")
+  IF(${item} MATCHES "src/cov_estimation.cpp")
+    LIST(REMOVE_ITEM SOURCES ${item})
+  ENDIF(${item} MATCHES "src/cov_estimation.cpp")
 ENDFOREACH(item)
 add_executable(app ${SOURCES})
 
@@ -161,6 +187,9 @@ FOREACH(item ${TESTS})
   IF(${item} MATCHES "src/main.cpp")
     LIST(REMOVE_ITEM TESTS ${item})
   ENDIF(${item} MATCHES "src/main.cpp")
+  IF(${item} MATCHES "src/cov_estimation.cpp")
+    LIST(REMOVE_ITEM TESTS ${item})
+  ENDIF(${item} MATCHES "src/cov_estimation.cpp")
 ENDFOREACH(item)
 
 add_executable(tests ${TESTS})
@@ -182,11 +211,13 @@ endif(BLAS_FOUND)
 
 if(BLAS_PROVIDED)
   if(USE_MKL)
+    target_compile_definitions(cov PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(app PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(tests PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(benchmarks PUBLIC EIGEN_USE_MKL_ALL)
     target_compile_definitions(input_generator PUBLIC EIGEN_USE_MKL_ALL)
   elseif (NOT USE_MKL)
+    target_compile_definitions(cov PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(app PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(tests PUBLIC EIGEN_USE_BLAS)
     target_compile_definitions(benchmarks PUBLIC EIGEN_USE_BLAS)
