@@ -1,0 +1,11 @@
+run,hash,function,n,b,d,density,matrix_id,matrix_seed,hash_seed,samples,warmup_iterations,cores
+1,tab,decompress_seq,             10000,20000,11, 0.1,1,0,0,10,5,40
+1,tab,decompress_seq,             10000,20000,11, 0.1,1,0,0,10,5,40
+1,tab,decompress_seq,             15000,20000,11, 0.1,2,0,0,10,5,40
+1,tab,decompress_seq,             15000,20000,11, 0.1,2,0,0,10,5,40
+1,tab,decompress_seq,             20000,20000,11, 0.1,3,0,0,10,5,40
+1,tab,decompress_seq,             20000,20000,11, 0.1,3,0,0,10,5,40
+1,tab,decompress_seq,             25000,20000,11, 0.1,4,0,0,10,5,40
+1,tab,decompress_seq,             25000,20000,11, 0.1,4,0,0,10,5,40
+1,tab,decompress_seq,             30000,20000,11, 0.1,5,0,0,10,5,40
+1,tab,decompress_seq,             30000,20000,11, 0.1,5,0,0,10,5,40
