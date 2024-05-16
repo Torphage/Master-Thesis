@@ -38,23 +38,41 @@ if __name__ == "__main__":
     infos = subprocess.check_output(["""grep -E 'processor|physical id|core id' /proc/cpuinfo"""], shell=True).decode("utf-8")
     lines = list(chunks(infos.splitlines(), 3))
 
+    # not_available_threads = []
     available_threads = []
     is_slurm = False
+    # not_my_job_id = -1
     try:
         run_info = subprocess.check_output(["scontrol -dd show job $SLURM_JOB_ID | grep 'CPU_IDs' | sed 's/^ *//'"], shell=True).decode("utf-8")
+        # not_my_job_id = int(subprocess.check_output(["sacct -r gpu-shannon -u oscpal --state RUNNING -oJobID | grep '.batch' | sed 's/^ *//'"], shell=True).decode("utf-8")[:5])
+        # run_info2 = subprocess.check_output([f"scontrol -dd show job {not_my_job_id} | grep 'CPU_IDs' | sed 's/^ *//'"], shell=True).decode("utf-8")
+        
         index = run_info.find("CPU_IDs") + 8
         end_index = run_info.find(" ", index)
         substr = run_info[index:end_index]
+        # index2 = run_info2.find("CPU_IDs") + 8
+        # end_index2 = run_info2.find(" ", index2)
+        # substr2 = run_info2[index2:end_index2]
         print(substr)
+        # print(substr2)
         available_threads = get_list_from_ranges(substr)
+        # not_available_threads = get_list_from_ranges(substr2)
         is_slurm = True
     except:
         available_threads = [i for i in range(len(lines))]
 
+    if (len(sys.argv) >= 2):
+        rang = get_list_from_ranges(sys.argv[1])
+        dont_use = []
+        for dont in rang:
+            dont_use.append(dont)
+            dont_use.append(dont-48)
+            dont_use.append(dont+48)
+        available_threads = [a for a in available_threads if a not in dont_use]
+
     physical_ids = []
     cores = []
     processes = []
-
     for attr in lines:
         processor = attr[0]
         physical_id = attr[1]
@@ -75,7 +93,8 @@ if __name__ == "__main__":
 
     os.environ["OMP_NUM_THREADS"] = str(len(indices))
 
-    args = sys.argv[1:]
+    args = sys.argv[2:]
+    
     
     print("Number of cores used: ", len(indices))
     print(list(zip(physical_ids, cores, processes)))
