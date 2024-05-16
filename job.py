@@ -62,13 +62,15 @@ if __name__ == "__main__":
         available_threads = [i for i in range(len(lines))]
 
     if (len(sys.argv) >= 2):
-        rang = get_list_from_ranges(sys.argv[1])
-        dont_use = []
-        for dont in rang:
-            dont_use.append(dont)
-            dont_use.append(dont-48)
-            dont_use.append(dont+48)
-        available_threads = [a for a in available_threads if a not in dont_use]
+        arg = sys.argv[1]
+        if arg != "-1":
+            rang = get_list_from_ranges(arg)
+            dont_use = []
+            for dont in rang:
+                dont_use.append(dont)
+                dont_use.append(dont-48)
+                dont_use.append(dont+48)
+            available_threads = [a for a in available_threads if a not in dont_use]
 
     physical_ids = []
     cores = []
