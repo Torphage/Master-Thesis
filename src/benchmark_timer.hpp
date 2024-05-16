@@ -39,6 +39,26 @@ double mean(std::vector<Word> const& v) {
 }
 
 template <typename Word>
+double geo_mean(std::vector<Word> const& v) {
+    if (v.empty()) {
+        return 0;
+    }
+
+    double m = 1.0;
+    long long ex = 0;
+    double invN = 1.0 / v.size();
+
+    for (double x : v) {
+        int i;
+        double f1 = std::frexp(x, &i);
+        m *= f1;
+        ex += i;
+    }
+
+    return std::pow(std::numeric_limits<double>::radix, ex * invN) * std::pow(m, invN);
+}
+
+template <typename Word>
 double low_mean(std::vector<Word>& v) {
     std::vector<double> temp = v;
     if (temp.empty()) {
@@ -161,6 +181,9 @@ void benchmark(benchmark_json::config_information& config_info, Lambda&& fn, Arg
     config_info.results.median_val = median(vec);
     config_info.results.variance_val = variance(vec);
     config_info.results.std_dev_val = stddev(vec);
+    config_info.results.geo_mean_val = geo_mean(vec);
+    config_info.results.min_val = *std::min_element(vec.begin(), vec.end());
+    config_info.results.max_val = *std::max_element(vec.begin(), vec.end());
 
     print_benchmark(config_info);
 

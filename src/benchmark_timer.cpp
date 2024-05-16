@@ -22,6 +22,10 @@ void print_header() {
     std::cout << std::left << std::setw(15) << "median";
     std::cout << std::left << std::setw(15) << "std dev";
     std::cout << std::left << std::setw(15) << "tot run time" << std::endl;
+    std::cout << std::left << std::setw(40) << "";
+    std::cout << std::left << std::setw(15) << "geo mean";
+    std::cout << std::left << std::setw(15) << "min";
+    std::cout << std::left << std::setw(15) << "max" << std::endl;
     std::cout << "--------------------------------------------------------------------------------------" << std::endl;
 }
 
@@ -105,8 +109,11 @@ void print_benchmark(benchmark_json::config_information& config_info) {
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl;
     std::cout << "\r" << std::left << std::setw(12) << "   num cores: " << std::fixed << std::to_string(config_info.cores) << std::setw(23) << " ";
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.median_val).str();
-    std::cout << std::right << std::setw(15) << suitable_prefix((config_info.results).std_dev_val).str();
-    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.runtime_val).str() << std::endl
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.std_dev_val).str();
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.runtime_val).str() << std::endl;
+    std::cout << std::right << std::setw(38 + 15) << suitable_prefix(config_info.results.geo_mean_val).str();
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.min_val).str();
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.max_val).str() << std::endl
               << std::endl;
 }
 

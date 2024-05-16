@@ -18,8 +18,11 @@ struct benchmarkinfo {
     double median_val;
     double variance_val;
     double std_dev_val;
+    double geo_mean_val;
+    double min_val;
+    double max_val;
 
-    benchmarkinfo() : runtime_val(0.0), mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0) {
+    benchmarkinfo() : runtime_val(0.0), mean_val(0.0), low_mean_val(0.0), high_mean_val(0.0), median_val(0.0), variance_val(0.0), std_dev_val(0.0), geo_mean_val(0.0), min_val(0.0), max_val(0.0) {
         warmup_vals = std::vector<double>(0);
         vals = std::vector<double>(0);
     }
