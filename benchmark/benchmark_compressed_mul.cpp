@@ -186,6 +186,7 @@ int main(int argc, char *argv[]) {
     std::vector<unsigned int> hash_seeds = doc.GetColumn<unsigned int>("hash_seed");
     std::vector<int> sampless = doc.GetColumn<int>("samples");
     std::vector<int> warmup_iterationss = doc.GetColumn<int>("warmup_iterations");
+    std::vector<int> coress = doc.GetColumn<int>("cores");
     // std::vector<int> warmup_times = doc.GetColumn<int>("warmup_time");
 
     int number_of_lines = bs.size();
@@ -231,6 +232,7 @@ int main(int argc, char *argv[]) {
         unsigned int hash_seed = hash_seeds[index];
         int samples = sampless[index];
         int warmup_iterations = warmup_iterationss[index];
+        int cores = coress[index];
 
         if (hash_seed == 0) hash_seed = std::random_device{}();
 
@@ -248,6 +250,7 @@ int main(int argc, char *argv[]) {
         config_info.hash_seed = hash_seed;
         config_info.samples = samples;
         config_info.warmup_iterations = warmup_iterations;
+        config_info.cores = cores;
 
         auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
         int new_index = std::distance(matrix_ids.begin(), iter);
@@ -261,6 +264,8 @@ int main(int argc, char *argv[]) {
 
         MatrixRXd &m1 = m1s[current_matrix_id];
         MatrixRXd &m2 = m2s[current_matrix_id];
+
+        omp_set_num_threads(cores);
 
         if (s_function == "eigen")
             eigen(m1, m2, config_info);

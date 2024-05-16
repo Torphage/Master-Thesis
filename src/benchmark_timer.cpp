@@ -80,27 +80,31 @@ void print_start_info(benchmark_json::config_information& config_info) {
     }
     std::cout << std::right << std::setw(15) << config_info.samples;
     std::cout << std::right << std::setw(15) << config_info.warmup_iterations << std::endl;
-    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::flush;
+    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::endl;
+    std::cout << std::left << std::setw(12) << "   num cores: " << std::fixed << std::to_string(config_info.cores) << std::setw(23) << " " << std::flush;
 }
 
 void print_pre_run_info(benchmark_json::config_information& config_info, const double time) {
     if (config_info.name.size() > 37) {
-        std::cout << "\033[1A\r" << std::left << std::setw(38) << config_info.name << std::endl
+        std::cout << "\033[1A\r" << "\033[1A\r" << std::left << std::setw(38) << config_info.name << std::endl
                   << std::left << std::setw(38) << "";
     } else {
-        std::cout << "\033[1A\r" << std::left << std::setw(38) << config_info.name;
+        std::cout << "\033[1A\r" << "\033[1A\r" << std::left << std::setw(38) << config_info.name;
     }
     std::cout << std::right << std::setw(15) << config_info.samples;
     std::cout << std::right << std::setw(15) << config_info.warmup_iterations;
     std::cout << std::right << std::setw(15) << suitable_prefix(time).str() << std::endl;
-    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::flush;
+    std::cout << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id) << std::endl;
+    std::cout << std::left << std::setw(12) << "   num cores: " << std::fixed << std::to_string(config_info.cores) << std::setw(23) << " " << std::flush;
 }
 
 void print_benchmark(benchmark_json::config_information& config_info) {
+    std::cout << "\033[1A\r" << std::left << std::setw(38) << "   n:" + std::to_string(config_info.n) + "   b:" + std::to_string(config_info.b) + "   d:" + std::to_string(config_info.d) + "   id:" + std::to_string(config_info.matrix_id);
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.low_mean_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.high_mean_val).str() << std::endl;
-    std::cout << std::right << std::setw(38 + 15) << suitable_prefix(config_info.results.median_val).str();
+    std::cout << "\r" << std::left << std::setw(12) << "   num cores: " << std::fixed << std::to_string(config_info.cores) << std::setw(23) << " ";
+    std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.median_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix((config_info.results).std_dev_val).str();
     std::cout << std::right << std::setw(15) << suitable_prefix(config_info.results.runtime_val).str() << std::endl
               << std::endl;

@@ -44,9 +44,10 @@ struct config_information {
     unsigned int hash_seed;
     int samples;
     int warmup_iterations;
+    int cores;
     benchmarkinfo results;
 
-    config_information() : n(0), b(0), d(0), density(0.0), name(""), hash(""), function(""), matrix_id(0), matrix_seed(0), hash_seed(0), samples(0), warmup_iterations(0) {
+    config_information() : n(0), b(0), d(0), density(0.0), name(""), hash(""), function(""), matrix_id(0), matrix_seed(0), hash_seed(0), samples(0), warmup_iterations(0), cores(0) {
         results = benchmarkinfo();
     }
 };
