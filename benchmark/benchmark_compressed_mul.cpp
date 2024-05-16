@@ -371,6 +371,12 @@ int main(int argc, char *argv[]) {
             BM_cwise_product(n, m1, m2, config_info);
 
         info.config.push_back(config_info);
+
+        if (argc >= 3) {
+            benchmark_json::write_file(argv[2], info);
+        } else {
+            benchmark_json::write_file("benchmark.json", info);
+        }
     }
 
     auto finish = std::chrono::steady_clock::now();
