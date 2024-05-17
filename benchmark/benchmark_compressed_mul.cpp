@@ -160,8 +160,8 @@ int main(int argc, char *argv[]) {
     benchmark_timer::print_header();
 
     std::string input_file;
-    if (argc >= 2) {
-        input_file = argv[1];
+    if (argc >= 3) {
+        input_file = argv[2];
     } else {
         input_file = "input.csv";
     }
@@ -251,6 +251,10 @@ int main(int argc, char *argv[]) {
         config_info.samples = samples;
         config_info.warmup_iterations = warmup_iterations;
         config_info.cores = cores;
+        if (argc >= 2) {
+            std::string slurm_name = argv[1];
+            config_info.slurm_file = "slurm-" + slurm_name + ".out";
+        }
 
         auto iter = std::find(matrix_ids.begin(), matrix_ids.end(), matrix_id);
         int new_index = std::distance(matrix_ids.begin(), iter);
@@ -372,8 +376,8 @@ int main(int argc, char *argv[]) {
 
         info.config.push_back(config_info);
 
-        if (argc >= 3) {
-            benchmark_json::write_file(argv[2], info);
+        if (argc >= 4) {
+            benchmark_json::write_file(argv[3], info);
         } else {
             benchmark_json::write_file("benchmark.json", info);
         }
@@ -387,8 +391,8 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Total benchmarking duration: " << benchmark_timer::suitable_prefix(total_duration).str() << std::endl;
 
-    if (argc >= 3) {
-        benchmark_json::write_file(argv[2], info);
+    if (argc >= 4) {
+        benchmark_json::write_file(argv[3], info);
     } else {
         benchmark_json::write_file("benchmark.json", info);
     }

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./build/benchmarks $1 $2
+./build/benchmarks $1 $2 $3

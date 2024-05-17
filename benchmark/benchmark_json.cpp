@@ -32,6 +32,7 @@ void write_file(std::string filename, information info) {
         config["samples"] = c.samples;
         config["warmup_iterations"] = c.warmup_iterations;
         config["cores"] = c.cores;
+        config["slurm_file"] = c.slurm_file;
 
         benchmark["config"] = config;
 
