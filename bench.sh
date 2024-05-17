@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./build/benchmarks $1 $2 $3
+./build/benchmarks $SLURM_JOB_ID $1 $2
