@@ -31,6 +31,7 @@ void write_file(std::string filename, information info) {
         config["hash_seed"] = c.hash_seed;
         config["samples"] = c.samples;
         config["warmup_iterations"] = c.warmup_iterations;
+        config["cores"] = c.cores;
 
         benchmark["config"] = config;
 
@@ -42,6 +43,9 @@ void write_file(std::string filename, information info) {
         result["median"] = c.results.median_val;
         result["variance"] = c.results.variance_val;
         result["stdval"] = c.results.std_dev_val;
+        result["geo_mean"] = c.results.geo_mean_val;
+        result["min"] = c.results.min_val;
+        result["max"] = c.results.max_val;
 
         nlohmann::json warmups;
         for (const double &time : c.results.warmup_vals) {
